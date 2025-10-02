@@ -1,7 +1,10 @@
 declare module 'bun' {
   interface Env {
     LOG_LEVEL?: string;
-    WEB_SCRAPER_SERVICE_CRON?: string;
     MONGODB_URI?: string;
+    WEB_SCRAPER_SERVICE_CRON?: string;
+    DISCORD_CLIENT_ID?: string;
+    DISCORD_BOT_TOKEN?: string;
+    DISCORD_TEST_GUILD_ID?: string;
   }
 }
