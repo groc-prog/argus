@@ -6,12 +6,12 @@ export default {
   name: Events.InteractionCreate,
 
   async execute(interaction: Interaction) {
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isAutocomplete()) return;
 
     const command = client.commands.get(interaction.commandName);
-    if (!command) return;
+    if (!command || !command.autocomplete) return;
 
-    logger.info(`Received chat input interaction for command ${command.data.name}`);
-    await command.execute(interaction);
+    logger.info(`Received autocomplete interaction for command ${command.data.name}`);
+    await command.autocomplete(interaction);
   },
 };
