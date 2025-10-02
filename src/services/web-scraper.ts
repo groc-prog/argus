@@ -46,7 +46,7 @@ export class WebScraperService {
     );
   }
 
-  async execute(): Promise<void> {
+  private async execute(): Promise<void> {
     const scrapedMovies: Movie[] = [];
 
     if (!this.job || !this.job.name) {
