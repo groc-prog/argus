@@ -1,5 +1,3 @@
- 
-
 import puppeteer, { ElementHandle, Page } from 'puppeteer';
 import { Cron } from 'croner';
 import logger from '../utils/logger';
@@ -85,10 +83,17 @@ export class WebScraperService {
       }
 
       loggerWithJobCtx.info('Extracted data successfully, storing data to database');
-      const operations = scrapedMovies.map((movieData) => {
-        const model = new MovieModel(movieData);
-        return model.save();
-      });
+      const operations = scrapedMovies.map((movieData) =>
+        MovieModel.findOneAndUpdate(
+          { title: movieData.title },
+          {
+            $set: movieData,
+          },
+          {
+            upsert: true,
+          },
+        ),
+      );
 
       loggerWithJobCtx.debug(`Running ${operations.length} operations concurrently`);
       await Promise.all(operations);
