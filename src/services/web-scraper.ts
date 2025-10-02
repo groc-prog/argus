@@ -1,6 +1,6 @@
 import puppeteer, { ElementHandle, Page } from 'puppeteer';
 import { Cron } from 'croner';
-import logger from '../utils/logger';
+import logger from '../utilities/logger';
 import dayjs from 'dayjs';
 import { MovieModel, type Movie } from '../models/movie';
 
@@ -18,7 +18,7 @@ export class WebScraperService {
   schedule(): void {
     if (!this.cronSchedule) {
       logger.warn(
-        `No cron scheduler defined in environment. ${this.constructor.name} will not be scheduled.`,
+        `No cron scheduler found in environment. ${this.constructor.name} will not be scheduled.`,
       );
       return;
     }

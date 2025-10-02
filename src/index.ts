@@ -1,9 +1,9 @@
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone.js';
 import utc from 'dayjs/plugin/utc.js';
-import { WebScraperService } from './services/web-scraper';
 import mongoose from 'mongoose';
-import logger from './utils/logger';
+import logger from './utilities/logger';
+import { initializeDiscordClient } from './bot/client';
 
 dayjs.extend(timezone);
 dayjs.extend(utc);
@@ -30,7 +30,4 @@ mongoose.connection.on('error', (event) => {
 logger.info('Connecting to MongoDB');
 await mongoose.connect(uri);
 
-const s = new WebScraperService();
-
-s.schedule();
-await s.execute();
+await initializeDiscordClient();
