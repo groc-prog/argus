@@ -1,9 +1,35 @@
 {
   "name": "argus",
-  "module": "index.ts",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
+  "module": "src/index.ts",
+  "type": "module",
   "private": true,
-  "type": "module"
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --hot --inspect src/index.ts",
+    "build": "bun build --entrypoints src/index.ts --outdir dist --target bun",
+    "fmt": "prettier --write src/**/*.ts",
+    "fmt:check": "prettier --check src/**/*.ts",
+    "lint": "eslint --cache --fix src/**/*.ts",
+    "lint:check": "eslint --cache src/**/*.ts",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@eslint/js": "^9.36.0",
+    "@types/bun": "latest",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.45.0"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  }
 }
