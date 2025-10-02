@@ -17,6 +17,7 @@ export default defineConfig([
       },
     },
   },
+  tseslint.configs.strictTypeChecked,
   {
     rules: eslintConfigPrettier.rules,
   },
@@ -30,5 +31,4 @@ export default defineConfig([
       ],
     },
   },
-  tseslint.configs.strictTypeChecked,
 ]);

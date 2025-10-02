@@ -1,5 +1,5 @@
 import { Locale } from 'discord.js';
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 export enum KeywordType {
   MovieTitle = 'title',
