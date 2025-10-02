@@ -20,5 +20,15 @@ export default defineConfig([
   {
     rules: eslintConfigPrettier.rules,
   },
+  {
+    rules: {
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        {
+          allowNumber: true,
+        },
+      ],
+    },
+  },
   tseslint.configs.strictTypeChecked,
 ]);
