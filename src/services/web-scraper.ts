@@ -36,7 +36,7 @@ export class WebScraperService {
               job: executedJob.name,
               nextScheduleAt: nextSchedulesInMs ? dayjs().add(nextSchedulesInMs, 'ms') : 'unknown',
             },
-            'Job failure during execution',
+            'Job error during execution',
           );
         },
       },
@@ -101,7 +101,7 @@ export class WebScraperService {
     } catch (err) {
       loggerWithJobCtx.error(
         { err, job: this.job.name },
-        'Failure during job execution, aborting job run',
+        'Error during job execution, aborting job run',
       );
       await browser.close();
     }
@@ -242,7 +242,7 @@ export class WebScraperService {
     } catch (err) {
       loggerWithJobCtx.error(
         { err, element: element.toString() },
-        'Failure during element extraction, skipping element',
+        'Error during element extraction, skipping element',
       );
       return null;
     }
@@ -299,7 +299,7 @@ export class WebScraperService {
     } catch (err) {
       loggerWithJobCtx.error(
         { err, element: screeningElement.toString() },
-        'Failure during element extraction, skipping element',
+        'Error during element extraction, skipping element',
       );
       return null;
     }

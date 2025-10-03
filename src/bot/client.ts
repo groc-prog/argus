@@ -52,7 +52,7 @@ export async function initializeDiscordClient(): Promise<void> {
     logger.info('Logging in with bot token');
     await client.login(process.env.DISCORD_BOT_TOKEN);
   } catch (err) {
-    logger.error({ err }, 'Failure during Discord client initialization');
+    logger.error({ err }, 'Error during Discord client initialization');
     process.exit(1);
   }
 }
