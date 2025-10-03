@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import logger from '../utilities/logger';
+import { PermissionFlagsBits, type GuildBasedChannel } from 'discord.js';
+import { client } from '../bot/client';
 
 const botConfigurationSchema = new mongoose.Schema(
   {
@@ -23,6 +25,8 @@ const botConfigurationSchema = new mongoose.Schema(
       type: mongoose.SchemaTypes.String,
       trim: true,
       index: true,
+      required: true,
+      default: process.env.DISCORD_BOT_BROADCAST_CRON,
     },
     /**
      * The unique ID of the discord user who modified the configuration last. Will initialize
@@ -64,6 +68,92 @@ const botConfigurationSchema = new mongoose.Schema(
           { guildId, configurationId: defaultConfiguration.id as string },
           'Default bot configuration created',
         );
+      },
+      /**
+       * Checks if the provided channel is a valid channel to be set as the broadcasting channel.
+       *
+       * @param {GuildBasedChannel | null | undefined} channel - The channel to check.
+       * @throws {Error} If the discord.js client is not ready.
+       * @returns {boolean} `true` if the channel is valid, otherwise `false`.
+       */
+      isValidBroadcastChannel(channel: GuildBasedChannel | null | undefined): boolean {
+        if (!client.isReady()) throw new Error('Client not initialized yet');
+        if (!channel) return false;
+
+        return (
+          channel.isTextBased() &&
+          !channel.isDMBased() &&
+          !!channel.permissionsFor(client.user.id)?.has(PermissionFlagsBits.SendMessages)
+        );
+      },
+    },
+    methods: {
+      /**
+       * Resolves the `Channel` object for the configured broadcast channel.
+       *
+       * @throws {Error} If the discord.js client is not ready or the API request fails.
+       * @returns The resolved channel or `null` if the channel is not available or the bot is missing
+       * the required permissions.
+       */
+      async resolveBroadcastChannel() {
+        const loggerWithCtx = logger.child({
+          guildId: this.guildId,
+          channelId: this.broadcastChannelId,
+        });
+
+        loggerWithCtx.info('Resolving configured broadcast channel');
+        if (!client.isReady()) throw new Error('Client not initialized yet');
+        if (!this.broadcastChannelId) {
+          loggerWithCtx.debug('No broadcast channel configured');
+          return null;
+        }
+
+        loggerWithCtx.info('Fetching channel from Discord API');
+        try {
+          const channel = await client.channels.fetch(this.broadcastChannelId);
+          // We can not use the `isValidBroadcastChannel` helper here since it would otherwise result
+          // in a circular reference. Thanks mongoose
+          const isValidChannel =
+            channel?.isTextBased() &&
+            !channel.isDMBased() &&
+            channel.permissionsFor(client.user.id)?.has(PermissionFlagsBits.SendMessages);
+
+          // Channel might no longer be available, we might be missing some permissions or it might not
+          // be a text channel the bot can post to
+          if (!isValidChannel) {
+            loggerWithCtx.info('Bot is missing permission or channel does not exist');
+            return null;
+          }
+
+          return channel;
+        } catch (err) {
+          loggerWithCtx.error({ err }, 'Error while fetching channel');
+          throw err;
+        }
+      },
+      /**
+       * Resolves the `User` object for the user who last updated the configuration.
+       *
+       * @throws {Error} If the discord.js client is not ready or the API request fails.
+       * @returns The resolved user.
+       */
+      async resolveLastModifiedUser() {
+        const loggerWithCtx = logger.child({
+          guildId: this.guildId,
+          userId: this.lastModifiedBy,
+        });
+
+        loggerWithCtx.info('Resolving user who last modified configuration');
+        if (!client.isReady()) throw new Error('Client not initialized yet');
+
+        try {
+          const user = await client.users.fetch(this.lastModifiedBy);
+
+          return user;
+        } catch (err) {
+          loggerWithCtx.error({ err }, 'Error while fetching user');
+          throw err;
+        }
       },
     },
   },

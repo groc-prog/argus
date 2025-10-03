@@ -14,8 +14,7 @@ import { message, replyFromTemplate } from '../../../utilities/reply';
 import logger from '../../../utilities/logger';
 import { BotConfigurationModel } from '../../../models/bot-configuration';
 import dayjs from 'dayjs';
-import configureCommand from './setup';
-import { client } from '../../client';
+import setupCommand from './setup';
 
 export default {
   data: new SlashCommandBuilder()
@@ -28,7 +27,10 @@ export default {
     .setContexts(InteractionContextType.Guild),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const loggerWithCtx = logger.child({ guildId: interaction.guildId });
+    const loggerWithCtx = logger.child({
+      guildId: interaction.guildId,
+      command: interaction.commandName,
+    });
 
     try {
       loggerWithCtx.info('Fetching bot configuration from database');
@@ -38,51 +40,36 @@ export default {
         await replyFromTemplate(interaction, replies.success, {
           template: {
             latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
-            broadcastSchedule: process.env.DISCORD_BOT_BROADCAST_CRON,
-            setupCommand: configureCommand.data.name,
+            setupCommand: setupCommand.data.name,
           },
         });
         return;
       }
 
-      loggerWithCtx.debug(
-        { broadcastChannelId: configuration.broadcastChannelId },
-        'Fetching broadcast channel',
-      );
-      const broadcastChannel = await client.channels.fetch(configuration.broadcastChannelId);
-      if (!broadcastChannel || !broadcastChannel.isTextBased() || broadcastChannel.isDMBased()) {
-        loggerWithCtx.info(
-          { broadcastChannelId: configuration.broadcastChannelId },
-          'Configured broadcast channel is not a valid channel',
-        );
+      const broadcastChannel = await configuration.resolveBroadcastChannel();
+      if (!broadcastChannel) {
         await replyFromTemplate(interaction, replies.success, {
           template: {
             latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
-            broadcastSchedule: process.env.DISCORD_BOT_BROADCAST_CRON,
-            setupCommand: configureCommand.data.name,
+            setupCommand: setupCommand.data.name,
           },
         });
         return;
       }
 
-      loggerWithCtx.info(
-        { userId: configuration.lastModifiedBy },
-        'Fetching user who last modified configuration',
-      );
-      const user = await client.users.fetch(configuration.lastModifiedBy);
-
+      const user = await configuration.resolveLastModifiedUser();
       await replyFromTemplate(interaction, replies.success, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
           setupFinished: true,
           broadcastChannel: broadcastChannel.name,
-          broadcastSchedule: process.env.DISCORD_BOT_BROADCAST_CRON,
+          broadcastSchedule: configuration.broadcastCronSchedule,
           lastModifiedBy: user.displayName,
-          setupCommand: configureCommand.data.name,
+          setupCommand: setupCommand.data.name,
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Failure during command execution');
+      loggerWithCtx.error({ err }, 'Error during command execution');
       await replyFromTemplate(interaction, replies.error, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
@@ -101,7 +88,7 @@ const replies = {
       ${bold('Latency')}:  ${inlineCode('{{{latency}}} ms')}
       ${bold('Setup Status')}:  ${inlineCode('{{#setupFinished}}DONE{{/setupFinished}}{{^setupFinished}}PENDING{{/setupFinished}}')}
       ${bold('Broadcast Channel')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NOT CONFIGURED{{/broadcastChannel}}')}
-      ${bold('Broadcast Schedule')}:  ${inlineCode('{{{broadcastSchedule}}}')}
+      ${bold('Broadcast Schedule')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NOT CONFIGURED{{/broadcastSchedule}}')}
       {{#lastModifiedBy}}
         ${subtext(`Configured by:  ${inlineCode('{{{lastModifiedBy}}}')}`)}
       {{/lastModifiedBy}}
@@ -120,7 +107,7 @@ const replies = {
       ${bold('Latenz')}:  ${inlineCode('{{{latency}}} ms')}
       ${bold('Setup-Status')}:  ${inlineCode('{{#setupFinished}}ERLEDIGT{{/setupFinished}}{{^setupFinished}}AUSSTEHEND{{/setupFinished}}')}
       ${bold('Broadcast-Kanal')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NICHT KONFIGURIERT{{/broadcastChannel}}')}
-      ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{{broadcastSchedule}}}')}
+      ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NICHT KONFIGURIERT{{/broadcastSchedule}}')}
       {{#lastModifiedBy}}
         ${subtext('Konfiguriert von')}:  ${inlineCode('{{{lastModifiedBy}}}')}
       {{/lastModifiedBy}}

@@ -46,13 +46,7 @@ export default {
         'No available system channel found, checking for other channels with sufficient permissions',
       );
       const guildChannels = await guild.channels.fetch();
-      const availableChannel = guildChannels.find(
-        (channel) =>
-          channel !== null &&
-          channel.isTextBased() &&
-          !channel.isDMBased() &&
-          channel.permissionsFor(botAsMember).has(PermissionFlagsBits.SendMessages),
-      );
+      const availableChannel = guildChannels.find(BotConfigurationModel.isValidBroadcastChannel);
       if (availableChannel) {
         loggerWithCtx.debug(
           { channelId: availableChannel.id },
