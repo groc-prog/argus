@@ -6,5 +6,6 @@ declare module 'bun' {
     DISCORD_CLIENT_ID?: string;
     DISCORD_BOT_TOKEN?: string;
     DISCORD_TEST_GUILD_ID?: string;
+    DISCORD_BOT_BROADCAST_CRON?: string;
   }
 }

@@ -23,6 +23,8 @@ export async function initializeDiscordClient(): Promise<void> {
     await registerEventsFromDirectory();
 
     const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
+    const commands = Array.from(client.commands.values());
+
     if (process.env.NODE_ENV === 'development') {
       if (!process.env.DISCORD_TEST_GUILD_ID) {
         logger.fatal('Running in development mode, but did not find test guild ID in environment');
@@ -37,12 +39,12 @@ export async function initializeDiscordClient(): Promise<void> {
           process.env.DISCORD_CLIENT_ID,
           process.env.DISCORD_TEST_GUILD_ID,
         ),
-        { body: client.commands.values().map((command) => command.data) },
+        { body: commands.map((command) => command.data.toJSON()) },
       );
     } else {
       logger.info(`Refreshing ${client.commands.size} global (/) commands`);
       await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), {
-        body: client.commands.values().map((command) => command.data),
+        body: commands.map((command) => command.data.toJSON()),
       });
     }
     logger.info(`Refreshed ${client.commands.size} (/) commands`);

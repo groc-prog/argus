@@ -11,7 +11,8 @@ export default {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
 
-    logger.info(`Received chat input interaction for command ${command.data.name}`);
+    logger.info({ command: command.data.name }, 'Received chat input interaction');
     await command.execute(interaction);
+    logger.info({ command: command.data.name }, 'Interaction finished');
   },
 };

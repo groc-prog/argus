@@ -5,7 +5,7 @@ type I18nMessages = Readonly<{ [Locale.EnglishUS]: string } & { [K in Locale]?: 
 
 interface ReplyContext {
   interaction?: Omit<InteractionReplyOptions, 'content'>;
-  template?: Mustache.Context;
+  template?: unknown;
 }
 
 /**
@@ -27,6 +27,7 @@ export const message = (strings: TemplateStringsArray, ...values: unknown[]): st
 /**
  * Generates a response message from a given mustache.js template. Optionally, context for both
  * the template and the reply can be defined.
+ *
  * @param {Interaction} interaction - The current interaction. Must be a interaction which
  * provides the `reply` method.
  * @param {I18nMessages} replies - A object containing all translated replies.
@@ -41,10 +42,13 @@ export async function replyFromTemplate(
   if (!('reply' in interaction))
     throw new Error('`interaction` parameter does not have a `reply` method');
 
-  const template =
-    interaction.locale in replies
-      ? (replies[interaction.locale] as string)
-      : replies[Locale.EnglishUS];
+  ctx.template ??= {};
+  ctx.interaction ??= {};
+
+  const template = replies[Locale.EnglishUS];
+  // interaction.locale in replies
+  //   ? (replies[interaction.locale] as string)
+  //   : replies[Locale.EnglishUS];
   const message = Mustache.render(template, ctx.template);
 
   await interaction.reply({
