@@ -24,9 +24,18 @@ const keywordSchema = new mongoose.Schema({
   },
 });
 
-const notificationSchema = new mongoose.Schema(
+const notificationEntrySchema = new mongoose.Schema(
   {
-    keywords: [keywordSchema],
+    name: {
+      type: mongoose.SchemaTypes.String,
+      required: true,
+      index: true,
+      trim: true,
+    },
+    keywords: {
+      type: [keywordSchema],
+      validate: [(val: unknown[]) => val.length !== 0, '{PATH} must contain at least one element'],
+    },
     /**
      * The number of notifications already sent to the user. Used to check when the bot should
      * stop notifying the user about movies matching the entries keywords. Incremented each
@@ -39,31 +48,25 @@ const notificationSchema = new mongoose.Schema(
      */
     maxNotifications: mongoose.SchemaTypes.Number,
     /**
+     * By default, a entry will be deleted if it either expires or the max. number of notifications have
+     * been sent. If this flag gets set to `true`, the notification will be deactivated rather than deleted.
+     */
+    keepAfterExpiration: {
+      type: mongoose.SchemaTypes.Boolean,
+      index: true,
+    },
+    /**
+     * UTC timestamp of when the entry was deactivated.
+     */
+    deactivatedAt: mongoose.SchemaTypes.Date,
+    /**
      * UTC timestamp of when the last notification was sent.
      */
     lastNotificationSentAt: mongoose.SchemaTypes.Date,
     /**
-     * Date (12:00AM UTC) of when the notification should expire. Once expired, the notification
-     * will be removed.
+     * Date (12:00AM UTC) of when the entry should expire.
      */
     expiresAt: mongoose.SchemaTypes.Date,
-  },
-  {
-    timestamps: true,
-  },
-);
-
-const userNotificationSchema = new mongoose.Schema(
-  {
-    /**
-     * The unique ID of the user who will receive notifications.
-     */
-    userId: {
-      type: mongoose.SchemaTypes.String,
-      required: true,
-      unique: true,
-      index: true,
-    },
     /**
      * The locale in which the notification will be. This value is not inferred by the users settings
      * (as this is not exposed in the discord API) but rather from the guild in which he creates the
@@ -74,12 +77,35 @@ const userNotificationSchema = new mongoose.Schema(
       required: true,
       enum: Object.values(Locale),
     },
-    notifications: [notificationSchema],
   },
   {
     timestamps: true,
   },
 );
 
-export type UserNotification = mongoose.InferSchemaType<typeof userNotificationSchema>;
-export const UserNotificationModel = mongoose.model('UserNotification', userNotificationSchema);
+const notificationSchema = new mongoose.Schema(
+  {
+    /**
+     * The unique ID of the user who will receive notifications.
+     */
+    userId: {
+      type: mongoose.SchemaTypes.String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    timezone: {
+      type: mongoose.SchemaTypes.String,
+      required: true,
+      default: 'Europe/Vienna',
+      enum: Intl.supportedValuesOf('timeZone'),
+    },
+    entries: [notificationEntrySchema],
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export type Notification = mongoose.InferSchemaType<typeof notificationSchema>;
+export const NotificationModel = mongoose.model('Notification', notificationSchema);
