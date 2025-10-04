@@ -6,13 +6,17 @@ export default {
   name: Events.InteractionCreate,
 
   async execute(interaction: Interaction) {
-    if (!interaction.isChatInputCommand()) return;
+    try {
+      if (!interaction.isChatInputCommand()) return;
 
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
+      const command = client.commands.get(interaction.commandName);
+      if (!command) return;
 
-    logger.info({ command: command.data.name }, 'Received chat input interaction');
-    await command.execute(interaction);
-    logger.info({ command: command.data.name }, 'Interaction finished');
+      logger.info({ command: command.data.name }, 'Received chat input interaction');
+      await command.execute(interaction);
+      logger.info({ command: command.data.name }, 'Interaction finished');
+    } catch (err) {
+      logger.error({ err }, 'Unhandled error during interaction handling');
+    }
   },
 };

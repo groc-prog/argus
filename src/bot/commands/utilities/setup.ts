@@ -12,14 +12,12 @@ import {
   MessageFlags,
   quote,
   SlashCommandBuilder,
-  unorderedList,
 } from 'discord.js';
 import logger from '../../../utilities/logger';
 import Fuse from 'fuse.js';
 import { Cron } from 'croner';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import { BotConfigurationModel, type BotConfiguration } from '../../../models/bot-configuration';
-import setupCommand from './setup';
 
 export default {
   data: new SlashCommandBuilder()
@@ -55,8 +53,8 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const broadcastChannelId = interaction.options.get('broadcast-channel');
-    const broadcastScheduleCron = interaction.options.get('broadcast-schedule');
+    const broadcastChannelId = interaction.options.getString('broadcast-channel');
+    const broadcastScheduleCron = interaction.options.getString('broadcast-schedule');
     const partialConfiguration: Partial<BotConfiguration> = {};
 
     const loggerWithCtx = logger.child({
@@ -64,30 +62,18 @@ export default {
       command: interaction.commandName,
     });
 
-    if (!broadcastChannelId?.value && !broadcastScheduleCron?.value) {
-      await replyFromTemplate(interaction, replies.help, {
-        template: {
-          setupCommand: setupCommand.data.name,
-        },
-        interaction: {
-          flags: MessageFlags.Ephemeral,
-        },
-      });
-      return;
-    }
-
-    if (typeof broadcastScheduleCron?.value === 'string') {
+    if (typeof broadcastScheduleCron === 'string') {
       loggerWithCtx.info('Validating configuration options');
       try {
-        const cron = new Cron(broadcastScheduleCron.value);
+        const cron = new Cron(broadcastScheduleCron);
         cron.stop();
 
-        partialConfiguration.broadcastCronSchedule = broadcastScheduleCron.value;
+        partialConfiguration.broadcastCronSchedule = broadcastScheduleCron;
       } catch (err) {
         loggerWithCtx.info({ err }, 'Invalid cron expression found, aborting');
         await replyFromTemplate(interaction, replies.cronValidationError, {
           template: {
-            cronExpression: broadcastScheduleCron.value,
+            cronExpression: broadcastScheduleCron,
           },
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -97,19 +83,16 @@ export default {
       }
     }
 
-    if (typeof broadcastChannelId?.value === 'string') {
+    if (broadcastChannelId) {
       try {
-        loggerWithCtx.info(
-          { channelId: broadcastChannelId.value },
-          'Validating broadcast channel ID',
-        );
+        loggerWithCtx.info({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
 
-        const channel = await interaction.guild?.channels.fetch(broadcastChannelId.value);
+        const channel = await interaction.guild?.channels.fetch(broadcastChannelId);
         const isValidChannel = BotConfigurationModel.isValidBroadcastChannel(channel);
         if (!isValidChannel) {
           loggerWithCtx.info(
-            { channelId: broadcastChannelId.value },
-            'Broadcast channel not found or bot is missing permission',
+            { channelId: broadcastChannelId },
+            'Broadcast channel not found or bot is missing permission, aborting',
           );
           await replyFromTemplate(interaction, replies.channelValidationError, {
             template: {
@@ -123,10 +106,10 @@ export default {
           return;
         }
 
-        partialConfiguration.broadcastChannelId = broadcastChannelId.value;
+        partialConfiguration.broadcastChannelId = broadcastChannelId;
       } catch (err) {
         loggerWithCtx.error(
-          { err, channelId: broadcastChannelId.value },
+          { err, channelId: broadcastChannelId },
           'Error while validating broadcast channel',
         );
         await replyFromTemplate(interaction, replies.channelValidationError, {
@@ -158,7 +141,7 @@ export default {
       await replyFromTemplate(interaction, replies.success, {
         template: {
           setupFinished: !!updatedConfiguration.broadcastChannelId,
-          setupCommand: setupCommand.data.name,
+          setupCommand: interaction.commandName,
           broadcastChannel: await updatedConfiguration.resolveBroadcastChannel(),
           broadcastSchedule: updatedConfiguration.broadcastCronSchedule,
         },
@@ -197,6 +180,12 @@ export default {
         loggerWithCtx.info('No channels with sufficient permissions found');
       else loggerWithCtx.info(`Found ${channelOptions.length} possible broadcast channels`);
 
+      if (focusedOptionValue.trim().length === 0) {
+        loggerWithCtx.debug('No input to filter yet, returning first 25 options');
+        await interaction.respond(channelOptions.slice(0, 25));
+        return;
+      }
+
       loggerWithCtx.debug('Fuzzy searching available channel options');
       const fuse = new Fuse(channelOptions, {
         keys: ['name'],
@@ -207,45 +196,12 @@ export default {
       await interaction.respond(matchedOptions);
     } catch (err) {
       loggerWithCtx.error({ err }, 'Failed to get autocomplete options for broadcast channels');
+      await interaction.respond([]);
     }
   },
 };
 
 const replies = {
-  help: {
-    [Locale.EnglishUS]: message`
-      ${heading(':information_source:  SETUP GUIDE  :information_source:')}
-      In a world where silence rules the stage… the setup command brings the show to life.
-
-      ${bold('Command')}:  ${inlineCode('/{{{setupCommand}}}')}
-      ${bold('Purpose')}:  ${inlineCode('Configure the bot for broadcasts')}
-
-      Use this command to:
-      ${unorderedList([
-        `Select the ${inlineCode('broadcast channel')} where messages will be posted`,
-        `Define the ${inlineCode('broadcast schedule')} with a valid CRON expression`,
-        'Save your settings so the bot can operate automatically',
-      ])}
-
-      ${quote(italic(`Without setup, the stage remains dark. Run ${inlineCode('/{{{setupCommand}}}')} to open the curtains.`))}
-    `,
-    [Locale.German]: message`
-      ${heading(':information_source:  EINRICHTUNGSANLEITUNG  :information_source:')}
-      In einer Welt, in der Stille auf der Bühne herrscht… erweckt der Setup-Befehl die Show zum Leben.
-
-      ${bold('Befehl')}:  ${inlineCode('/{{{setupCommand}}}')}
-      ${bold('Zweck')}:  ${inlineCode('Bot für Übertragungen konfigurieren')}
-
-      Verwende diesen Befehl, um:
-      ${unorderedList([
-        `Den ${inlineCode('Broadcast-Kanal')} auszuwählen, in dem Nachrichten gesendet werden`,
-        `Den ${inlineCode('Broadcast-Zeitplan')} mit einem gültigen CRON-Ausdruck festzulegen`,
-        'Deine Einstellungen zu speichern, damit der Bot automatisch arbeiten kann',
-      ])}
-
-      ${quote(italic(`Ohne Setup bleibt die Bühne dunkel. Führe ${inlineCode('/{{{setupCommand}}}')} aus, um den Vorhang zu öffnen.`))}
-    `,
-  },
   success: {
     [Locale.EnglishUS]: message`
       ${heading(':loudspeaker:  SYSTEM STATUS REPORT  :loudspeaker:')}

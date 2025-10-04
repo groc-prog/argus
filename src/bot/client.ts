@@ -23,7 +23,7 @@ export async function initializeDiscordClient(): Promise<void> {
     await registerEventsFromDirectory();
 
     const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
-    const commands = Array.from(client.commands.values());
+    const commands = client.commands.values().toArray();
 
     if (process.env.NODE_ENV === 'development') {
       if (!process.env.DISCORD_TEST_GUILD_ID) {
