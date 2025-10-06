@@ -29,7 +29,10 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const loggerWithCtx = logger.child({ userId: interaction.user.id });
+    const loggerWithCtx = logger.child({
+      userId: interaction.user.id,
+      command: interaction.commandName,
+    });
 
     const timezone = interaction.options.getString('timezone', true);
 

@@ -17,6 +17,7 @@ import { client } from '../../client';
 import statusCommand from '../utilities/status';
 import setupCommand from '../utilities/setup';
 import addNotificationCommand from '../notifications/add';
+import listNotificationCommand from '../notifications/notifications';
 import setTimezoneCommand from '../notifications/set-timezone';
 import movieFeaturesCommand from '../movies/features';
 import { message, replyFromTemplate } from '../../../utilities/reply';
@@ -143,8 +144,6 @@ const replies = {
 
       ${heading('What the heck is CRON?!?!', HeadingLevel.Three)}
       That's a good question! ${hyperlink('CRON expressions', 'https://en.wikipedia.org/wiki/Cron#Cron_expression')} are a way to define a recurring schedule with a standard format. Although it is commonly used in IT, it's also somewhat user friendly and there are many online tools ${hyperlink('like this one', 'https://crontab.io/validator')} which can help you define the CRON expression you want.
-
-      ${quote(italic(`Without setup, the stage remains dark. Run ${inlineCode(`/${setupCommand.data.name}`)} to open the curtains.`))}
     `,
     [Locale.German]: message`
       ${heading(':information_source:  SETUP-GUIDE  :information_source:')}
@@ -161,8 +160,6 @@ const replies = {
 
       ${heading('Was zum Teufel ist CRON?!?!', HeadingLevel.Three)}
       Gute Frage! ${hyperlink('CRON-Ausdrücke', 'https://de.wikipedia.org/wiki/Cron#Beispiele')} sind eine Möglichkeit, einen wiederkehrenden Zeitplan in einem standardisierten Format festzulegen. Obwohl CRON vor allem in der IT verwendet wird, ist es trotzdem einigermaßen benutzerfreundlich, und es gibt viele Online-Tools ${hyperlink('wie dieses hier', 'https://crontab.io/validator')} , die dir dabei helfen, den gewünschten CRON-Ausdruck zu erstellen.
-
-      ${quote(italic(`Ohne Setup bleibt die Bühne dunkel. Führe ${inlineCode(`/${setupCommand.data.name}`)} aus, um den Vorhang zu öffnen.`))}
     `,
   },
   [addNotificationCommand.data.name]: {
@@ -178,12 +175,12 @@ const replies = {
         `Create a notification by giving it a unique ${inlineCode('name')}`,
         `Define one (or multiple) movie titles or features for which to look out for while checking movies. All available features can be viewed with the /${movieFeaturesCommand.data.name} command.`,
         `Optionally set an ${inlineCode('expirationd ate')} date (YYYY-MM-DD) to let {{{botName}}} handle the deletion of this notification if that date is reached.`,
-        `Optionally set a ${inlineCode('max. number of notifications')} limit to prevent {{{botName}}} from notifying you after a given number of notifications have been sent.`,
+        `Optionally set a ${inlineCode("max. number of DM's")} limit to prevent {{{botName}}} from notifying you after a given number of DM's have been sent.`,
         `Optionally set flag to ${inlineCode('deactivate the entry when expired')} rather than deleting it. Deactivated notifications can later be reactivated.`,
       ])}
 
       ${heading('How movie title and feature filtering works', HeadingLevel.Three)}
-      You can define one or more keywords per notification. When you want to define more than one movie title or feature, you can provide a semicolon separated list of keywords. All keywords are ${bold('not')} case-sensitive.
+      You can define one or more keywords per notification. When you want to define more than one movie title or feature, you can provide a semicolon separated list of keywords. All keywords are ${bold('not')} case-sensitive and will always ${bold('be used together')}.
       {{{botName}}} will use these keywords to perform a ${inlineCode('fuzzy search')} across all movies which are currently shown. If he finds a match, you get a notification which will include some basic details about the movie.
 
       For example, if you create a notification for a movie title called ${inlineCode('duNne')} with a feature called ${inlineCode('3D')}, {{{botName}}} will keep a lookout for movies where the title approximately matches ${inlineCode('duNne')} and is in ${inlineCode('3D')}. If {{{botName}}} finds one, you will receive a DM.
@@ -207,13 +204,45 @@ const replies = {
       ])}
 
       ${heading('So funktioniert das Suchen nach Filmtiteln und Features', HeadingLevel.Three)}
-      Du kannst pro Benachrichtigung ein oder mehrere Schlüsselwörter festlegen. Wenn du mehr als einen Filmtitel oder ein Feature definieren möchtest, kannst du eine durch Semikolons getrennte Liste von Schlüsselwörtern angeben. Alle Schlüsselwörter sind ${bold('nicht')} groß-/kleinschreibungsabhängig.
+      Du kannst pro Benachrichtigung ein oder mehrere Schlüsselwörter festlegen. Wenn du mehr als einen Filmtitel oder ein Feature definieren möchtest, kannst du eine durch Semikolons getrennte Liste von Schlüsselwörtern angeben. Alle Schlüsselwörter sind ${bold('nicht')} groß-/kleinschreibungsabhängig und werden ${bold('immer zusammen genutzt')}.
       {{{botName}}} verwendet diese Schlüsselwörter, um eine ${inlineCode('unscharfe Suche')} über alle aktuell gezeigten Filme durchzuführen. Wenn er einen Treffer findet, erhältst du eine Benachrichtigung mit einigen Basisinformationen zum Film.
 
       Zum Beispiel: Wenn du eine Benachrichtigung für einen Filmtitel namens ${inlineCode('duNne')} mit einem Merkmal ${inlineCode('3D')} erstellst, wird {{{botName}}} nach Filmen suchen, deren Titel ungefähr ${inlineCode('duNne')} entspricht und die in ${inlineCode('3D')} sind.
       Wenn {{{botName}}} einen findet, erhältst du eine Direktnachricht.
 
       ${quote(`Falls du noch nie von ${hyperlink('unscharfer Suche', 'https://de.wikipedia.org/wiki/Unscharfe_Suche')} gehört hast: Sie ermöglicht es dir, ein nicht ganz korrektes Schlüsselwort zu definieren. Du wirst trotzdem über mögliche Treffer benachrichtigt, nicht nur über exakte.`)}
+    `,
+  },
+  [listNotificationCommand.data.name]: {
+    [Locale.EnglishUS]: message`
+      ${heading(':information_source:  LIST NOTIFICATIONS  :information_source:')}
+      In a world where every notification is a beacon… this command reveals them all.
+
+      ${bold('Command')}:  ${inlineCode(`/${listNotificationCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Display all your active notifications')}
+
+      Use this command to:
+      ${unorderedList([
+        'See all notifications you have created',
+        `Review each notification's ${inlineCode('name')} and it's ${inlineCode('keywords')}`,
+        'Check how many times each has been sent, when the last notification was triggered, and any expiration dates',
+        `Understand the sending ${inlineCode('interval')} for each notification`,
+      ])}
+    `,
+    [Locale.German]: message`
+      ${heading(':information_source:  BENACHRICHTIGUNGEN AUFLISTEN  :information_source:')}
+      In einer Welt, in der jede Benachrichtigung ein Signal ist… zeigt dir dieser Befehl alles auf.
+
+      ${bold('Befehl')}:  ${inlineCode(`/${listNotificationCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Zeige alle aktiven Benachrichtigungen an')}
+
+      Verwende diesen Befehl, um:
+      ${unorderedList([
+        'Alle von dir erstellten Benachrichtigungen zu sehen',
+        `Den ${inlineCode('Name')} und die ${inlineCode('Schlüsselwörter')} jeder Benachrichtigung zu überprüfen`,
+        'Zu sehen, wie oft jede bereits gesendet wurde, wann die letzte Benachrichtigung ausgelöst wurde und ob ein Ablaufdatum besteht',
+        `Das Sende-${inlineCode('Intervall')} jeder Benachrichtigung zu verstehen`,
+      ])}
     `,
   },
   [setTimezoneCommand.data.name]: {
