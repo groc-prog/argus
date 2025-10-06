@@ -28,6 +28,7 @@ export default {
 
   async execute(interaction: ChatInputCommandInteraction) {
     const loggerWithCtx = logger.child({
+      userId: interaction.user.id,
       guildId: interaction.guildId,
       command: interaction.commandName,
     });

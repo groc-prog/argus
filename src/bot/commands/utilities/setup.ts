@@ -58,6 +58,7 @@ export default {
     const partialConfiguration: Partial<BotConfiguration> = {};
 
     const loggerWithCtx = logger.child({
+      userId: interaction.user.id,
       guildId: interaction.guildId,
       command: interaction.commandName,
     });
