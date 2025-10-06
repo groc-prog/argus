@@ -18,6 +18,7 @@ import statusCommand from '../utilities/status';
 import setupCommand from '../utilities/setup';
 import addNotificationCommand from '../notifications/add';
 import listNotificationCommand from '../notifications/notifications';
+import deleteNotificationCommand from '../notifications/delete';
 import setTimezoneCommand from '../notifications/set-timezone';
 import movieFeaturesCommand from '../movies/features';
 import { message, replyFromTemplate } from '../../../utilities/reply';
@@ -243,6 +244,44 @@ const replies = {
         'Zu sehen, wie oft jede bereits gesendet wurde, wann die letzte Benachrichtigung ausgelöst wurde und ob ein Ablaufdatum besteht',
         `Das Sende-${inlineCode('Intervall')} jeder Benachrichtigung zu verstehen`,
       ])}
+    `,
+  },
+  [deleteNotificationCommand.data.name]: {
+    [Locale.EnglishUS]: message`
+      ${heading(':information_source:  DELETE NOTIFICATION  :information_source:')}
+      In a world where every notification leaves a trace… this command lets you clear one from existence.
+
+      ${bold('Command')}:  ${inlineCode(`/${deleteNotificationCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Remove an existing notification')}
+
+      ${bold('Options')}:
+      • ${inlineCode('name')} — The unique name of the notification you want to remove.
+        ${italic('This field is required to target the correct notification.')}
+
+      Use this command to:
+      • Remove a notification that is no longer needed
+      • Keep your notifications organized and relevant
+      • Ensure that only the notifications you want continue to trigger
+
+      ${quote(italic(`Choose wisely — once removed, the notification vanishes like a phantom.`))}
+    `,
+    [Locale.German]: message`
+      ${heading(':information_source:  BENACHRICHTIGUNG LÖSCHEN  :information_source:')}
+      In einer Welt, in der jede Benachrichtigung Spuren hinterlässt… erlaubt dir dieser Befehl, eine aus der Existenz zu entfernen.
+
+      ${bold('Befehl')}:  ${inlineCode(`/${deleteNotificationCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Eine bestehende Benachrichtigung entfernen')}
+
+      ${bold('Optionen')}:
+      • ${inlineCode('name')} — Der eindeutige Name der Benachrichtigung, die du entfernen möchtest.
+        ${italic('Dieses Feld ist erforderlich, um die richtige Benachrichtigung zu treffen.')}
+
+      Verwende diesen Befehl, um:
+      • Eine Benachrichtigung zu entfernen, die nicht mehr benötigt wird
+      • Deine Benachrichtigungen organisiert und relevant zu halten
+      • Sicherzustellen, dass nur die gewünschten Benachrichtigungen weiterhin ausgelöst werden
+
+      ${quote(italic(`Wähle weise — einmal entfernt, verschwindet die Benachrichtigung wie ein Phantom.`))}
     `,
   },
   [setTimezoneCommand.data.name]: {
