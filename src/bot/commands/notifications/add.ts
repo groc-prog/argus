@@ -47,9 +47,9 @@ export default {
     )
     .addNumberOption((option) =>
       option
-        .setName('max-notifications')
+        .setName('max-dms')
         .setNameLocalization(Locale.German, 'max-benachrichtigungen')
-        .setDescription('The max. number of notifications after which it will magically disappear.')
+        .setDescription("The max. number of DM's after which it will magically disappear.")
         .setDescriptionLocalization(
           Locale.German,
           'Die max. Anzahl an Benachrichtigungen, nach denene sie wie von Zauberhand verschwindet.',
@@ -84,6 +84,19 @@ export default {
           Locale.German,
           'Benachrichtigung bei Ablauf deaktivieren, anstatt sie zu löschen.',
         ),
+    )
+    .addNumberOption((option) =>
+      option
+        .setName('notification-interval')
+        .setNameLocalization(Locale.German, 'benachrichtigungs-intervall')
+        .setDescription(
+          'A interval (in days) in which you will receive a notification. This defaults to 1x per day.',
+        )
+        .setDescriptionLocalization(
+          Locale.German,
+          'Ein Intervall (in Tagen), in dem du eine Benachrichtigung erhältst. Der Standart ist 1x pro Tag.',
+        )
+        .setMinValue(1),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -93,8 +106,9 @@ export default {
     });
 
     const name = interaction.options.getString('name', true);
-    const maxNotifications = interaction.options.getNumber('max-notifications');
+    const maxDms = interaction.options.getNumber('max-dms');
     const deactivateOnExpiration = interaction.options.getBoolean('deactivate-on-expiration');
+    const dmDayInterval = interaction.options.getNumber('notification-interval') ?? 1;
 
     const expiresAt = interaction.options.getString('expiration-date');
 
@@ -173,10 +187,11 @@ export default {
       const notificationEntry = {
         name,
         locale: interaction.locale,
-        sentNotifications: maxNotifications ? 0 : undefined,
-        maxNotifications: maxNotifications ?? undefined,
+        sentNotifications: maxDms ? 0 : undefined,
+        maxDms: maxDms ?? undefined,
         expiresAt: expiresAt ? expiresAtUtc.startOf('day').toDate() : undefined,
         keepAfterExpiration: deactivateOnExpiration ?? undefined,
+        dmDayInterval,
         keywords: [
           ...(featuresArr?.map((value) => ({ type: KeywordType.MovieFeature, value })) ?? []),
           ...(titlesArr?.map((value) => ({ type: KeywordType.MovieTitle, value })) ?? []),
@@ -191,7 +206,8 @@ export default {
         template: {
           notificationName: name,
           expiresAt: expiresAt ? dayjs(expiresAt).format('YYYY-MM-DD') : undefined,
-          maxNotifications,
+          maxDms,
+          dmDayInterval,
         },
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -215,8 +231,9 @@ const replies = {
     In a world where anticipation meets precision… a new signal rises.
 
     The notification ${inlineCode('{{{notificationName}}}')} has been created successfully.
+    {{#dmDayInterval}}You will receive ${inlineCode('{{{dmDayInterval}}}x')} DM(s) per day as long as the notification is active.{{/dmDayInterval}}
     {{#expiresAt}}It will expire on ${inlineCode('{{{expiresAt}}}')}.{{/expiresAt}}
-    {{#maxNotifications}}It will automatically end after ${inlineCode('{{{maxNotifications}}}')} notifications.{{/maxNotifications}}
+    {{#maxDms}}It will automatically end after ${inlineCode('{{{maxDms}}}')} DM's.{{/maxDms}}
 
     ${quote(italic(`The beacon is lit. You will be notified when the moment arrives.`))}
   `,
@@ -225,8 +242,9 @@ const replies = {
     In einer Welt, in der Erwartung auf Präzision trifft… erhebt sich ein neues Signal.
 
     Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich erstellt.
+    {{#dmDayInterval}}Du erhältst ${inlineCode('{{{dmDayInterval}}}x')} Benachrichtigung(en) per Tag, solange sie aktiv ist.{{/dmDayInterval}}
     {{#expiresAt}}Sie läuft am ${inlineCode('{{{expiresAt}}}')} ab.{{/expiresAt}}
-    {{#maxNotifications}}Sie endet automatisch nach ${inlineCode('{{{maxNotifications}}}')} Benachrichtigungen.{{/maxNotifications}}
+    {{#maxDms}}Sie endet automatisch nach ${inlineCode('{{{maxDms}}}')} Benachrichtigungen.{{/maxDms}}
 
     ${quote(italic(`Das Signal ist gesetzt. Du wirst benachrichtigt, sobald der Moment gekommen ist.`))}
   `,

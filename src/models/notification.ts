@@ -37,16 +37,22 @@ const notificationEntrySchema = new mongoose.Schema(
       validate: [(val: unknown[]) => val.length !== 0, '{PATH} must contain at least one element'],
     },
     /**
-     * The number of notifications already sent to the user. Used to check when the bot should
-     * stop notifying the user about movies matching the entries keywords. Incremented each
-     * time a notification is send. Will be `undefined` if `maxNotifications` is not set.
+     * The number of DM's already sent to the user. Used to check when the bot should
+     * stop send DM's to the user about movies matching the entries keywords. Incremented each
+     * time a DM is send. Will be `undefined` if `maxDms` is not set.
      */
-    sentNotifications: mongoose.SchemaTypes.Number,
+    sentDms: {
+      type: mongoose.SchemaTypes.Number,
+      min: 0,
+    },
     /**
-     * The maximum number of notifications the user should receive for this notification. After the
-     * maximum number of notifications is reached, the notification is removed.
+     * The maximum number of DM's the user should receive for this notification. After the
+     * maximum number of DM's is reached, the notification is removed.
      */
-    maxNotifications: mongoose.SchemaTypes.Number,
+    maxDms: {
+      type: mongoose.SchemaTypes.Number,
+      min: 0,
+    },
     /**
      * By default, a entry will be deleted if it either expires or the max. number of notifications have
      * been sent. If this flag gets set to `true`, the notification will be deactivated rather than deleted.
@@ -60,15 +66,24 @@ const notificationEntrySchema = new mongoose.Schema(
      */
     deactivatedAt: mongoose.SchemaTypes.Date,
     /**
-     * UTC timestamp of when the last notification was sent.
+     * The interval (in days) in which a DM is sent.
      */
-    lastNotificationSentAt: mongoose.SchemaTypes.Date,
+    dmDayInterval: {
+      type: mongoose.SchemaTypes.Number,
+      min: 0,
+      default: 1,
+      required: true,
+    },
+    /**
+     * UTC timestamp of when the last DM was sent.
+     */
+    lastDmSentAt: mongoose.SchemaTypes.Date,
     /**
      * Date (12:00AM UTC) of when the entry should expire.
      */
     expiresAt: mongoose.SchemaTypes.Date,
     /**
-     * The locale in which the notification will be. This value is not inferred by the users settings
+     * The locale in which the DM will be. This value is not inferred by the users settings
      * (as this is not exposed in the discord API) but rather from the guild in which he creates the
      * notification.
      */
