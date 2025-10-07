@@ -59,7 +59,7 @@ export async function initializeDiscordClient(): Promise<void> {
 
 async function registerCommandsFromDirectory(): Promise<void> {
   const commandFoldersPath = path.join(import.meta.dirname, 'commands');
-  logger.info(`Collecting commands from ${commandFoldersPath}`);
+  logger.debug(`Collecting commands from ${commandFoldersPath}`);
 
   const commandFolders = await readdir(commandFoldersPath, { withFileTypes: true });
   for (const folder of commandFolders) {
@@ -94,7 +94,7 @@ async function registerCommandsFromDirectory(): Promise<void> {
 
 async function registerEventsFromDirectory(): Promise<void> {
   const eventFoldersPath = path.join(import.meta.dirname, 'events');
-  logger.info(`Collecting events from ${eventFoldersPath}`);
+  logger.debug(`Collecting events from ${eventFoldersPath}`);
 
   const eventFolders = await readdir(eventFoldersPath, { withFileTypes: true });
   for (const file of eventFolders) {

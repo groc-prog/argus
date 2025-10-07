@@ -139,7 +139,7 @@ export default {
       }
 
       if (expiresAt) {
-        logger.info('Validating expiration date option');
+        logger.debug('Validating expiration date option');
         const isValidDate = expiresAtUtc.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
 
         if (!isValidDate) {
@@ -174,7 +174,7 @@ export default {
         return;
       }
 
-      logger.info(
+      logger.debug(
         `Adding new notification with ${(featuresArr?.length ?? 0) + (titlesArr?.length ?? 0)}`,
       );
       const notificationEntry = {

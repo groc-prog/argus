@@ -50,7 +50,7 @@ export default {
         return;
       }
 
-      logger.info(`Found ${notification.entries.length} notifications`);
+      logger.debug(`Found ${notification.entries.length} notifications`);
       const templateData = notification.entries.map((entry) => ({
         name: entry.name,
         sentDms: entry.sentDms ?? 0,
@@ -95,11 +95,7 @@ const replies = {
       In a world where messages travel like clockwork… your notifications stand ready.
 
       {{#entries}}
-        ${heading('{{{name}}}', HeadingLevel.Two)}
-
-        {{#deactivated}}
-          ${bold('Status')}: ${inlineCode('❌ DEACTIVATED')}
-        {{/deactivated}}
+        ${heading('{{{name}}}  {{#deactivated}}:no_bell:{{/deactivated}}', HeadingLevel.Two)}
 
         ${bold('Keywords')}:
         {{#keywords}}
@@ -120,11 +116,7 @@ const replies = {
       In einer Welt, in der Nachrichten wie Uhrwerke reisen… stehen deine Benachrichtigungen bereit.
 
       {{#entries}}
-        ${heading('{{{name}}}', HeadingLevel.Two)}
-
-        {{#deactivated}}
-          ${bold('Status')}: ${inlineCode('❌ DEAKTIVIERT')}
-        {{/deactivated}}
+        ${heading('{{{name}}}  {{#deactivated}}:no_bell:{{/deactivated}}', HeadingLevel.Two)}
 
         ${bold('Schlüsselwörter')}:
         {{#keywords}}

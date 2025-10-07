@@ -82,7 +82,6 @@ export default {
     }
 
     logger.debug('Fuzzy searching available channel options');
-
     const fuse = new Fuse(commands, {
       keys: ['name'],
     });
