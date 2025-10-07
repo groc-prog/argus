@@ -13,7 +13,7 @@ import {
   quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import logger from '../../../utilities/logger';
+import { getLoggerWithCtx } from '../../../utilities/logger';
 import Fuse from 'fuse.js';
 import { Cron } from 'croner';
 import { message, replyFromTemplate } from '../../../utilities/reply';
@@ -57,21 +57,17 @@ export default {
     const broadcastScheduleCron = interaction.options.getString('broadcast-schedule');
     const partialConfiguration: Partial<BotConfiguration> = {};
 
-    const loggerWithCtx = logger.child({
-      userId: interaction.user.id,
-      guildId: interaction.guildId,
-      command: interaction.commandName,
-    });
+    const logger = getLoggerWithCtx(interaction);
 
     if (typeof broadcastScheduleCron === 'string') {
-      loggerWithCtx.info('Validating configuration options');
+      logger.info('Validating configuration options');
       try {
         const cron = new Cron(broadcastScheduleCron);
         cron.stop();
 
         partialConfiguration.broadcastCronSchedule = broadcastScheduleCron;
       } catch (err) {
-        loggerWithCtx.info({ err }, 'Invalid cron expression found, aborting');
+        logger.info({ err }, 'Invalid cron expression found, aborting');
         await replyFromTemplate(interaction, replies.cronValidationError, {
           template: {
             cronExpression: broadcastScheduleCron,
@@ -86,12 +82,12 @@ export default {
 
     if (broadcastChannelId) {
       try {
-        loggerWithCtx.info({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
+        logger.info({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
 
         const channel = await interaction.guild?.channels.fetch(broadcastChannelId);
         const isValidChannel = BotConfigurationModel.isValidBroadcastChannel(channel);
         if (!isValidChannel) {
-          loggerWithCtx.info(
+          logger.info(
             { channelId: broadcastChannelId },
             'Broadcast channel not found or bot is missing permission, aborting',
           );
@@ -109,7 +105,7 @@ export default {
 
         partialConfiguration.broadcastChannelId = broadcastChannelId;
       } catch (err) {
-        loggerWithCtx.error(
+        logger.error(
           { err, channelId: broadcastChannelId },
           'Error while validating broadcast channel',
         );
@@ -123,7 +119,7 @@ export default {
     }
 
     try {
-      loggerWithCtx.info('Updating bot configuration with upsert');
+      logger.info('Updating bot configuration with upsert');
       const updatedConfiguration = await BotConfigurationModel.findOneAndUpdate(
         { guildId: interaction.guild?.id },
         {
@@ -137,7 +133,7 @@ export default {
           new: true,
         },
       );
-      loggerWithCtx.info('Bot configuration successfully updated');
+      logger.info('Bot configuration successfully updated');
 
       await replyFromTemplate(interaction, replies.success, {
         template: {
@@ -148,7 +144,7 @@ export default {
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Error during configuration update');
+      logger.error({ err }, 'Error during configuration update');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -158,13 +154,10 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const loggerWithCtx = logger.child({
-      guildId: interaction.guildId,
-      command: interaction.commandName,
-    });
+    const logger = getLoggerWithCtx(interaction);
 
     try {
-      loggerWithCtx.info('Getting autocomplete options for broadcast channels');
+      logger.info('Getting autocomplete options for broadcast channels');
       const focusedOptionValue = interaction.options.getFocused();
 
       const guildChannels = (await interaction.guild?.channels.fetch()) ?? new Collection();
@@ -177,17 +170,16 @@ export default {
           value: channel?.id as string,
         }));
 
-      if (guildChannels.size === 0)
-        loggerWithCtx.info('No channels with sufficient permissions found');
-      else loggerWithCtx.info(`Found ${channelOptions.length} possible broadcast channels`);
+      if (guildChannels.size === 0) logger.info('No channels with sufficient permissions found');
+      else logger.info(`Found ${channelOptions.length} possible broadcast channels`);
 
       if (focusedOptionValue.trim().length === 0) {
-        loggerWithCtx.debug('No input to filter yet, returning first 25 options');
+        logger.debug('No input to filter yet, returning first 25 options');
         await interaction.respond(channelOptions.slice(0, 25));
         return;
       }
 
-      loggerWithCtx.debug('Fuzzy searching available channel options');
+      logger.debug('Fuzzy searching available channel options');
       const fuse = new Fuse(channelOptions, {
         keys: ['name'],
       });
@@ -196,7 +188,7 @@ export default {
       const matchedOptions = searchResult.map((result) => result.item);
       await interaction.respond(matchedOptions);
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Failed to get autocomplete options for broadcast channels');
+      logger.error({ err }, 'Failed to get autocomplete options for broadcast channels');
       await interaction.respond([]);
     }
   },

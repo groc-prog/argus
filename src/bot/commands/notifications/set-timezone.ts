@@ -9,7 +9,7 @@ import {
   quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import logger from '../../../utilities/logger';
+import { getLoggerWithCtx } from '../../../utilities/logger';
 import { NotificationModel } from '../../../models/notification';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import Fuse from 'fuse.js';
@@ -29,10 +29,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const loggerWithCtx = logger.child({
-      userId: interaction.user.id,
-      command: interaction.commandName,
-    });
+    const logger = getLoggerWithCtx(interaction);
 
     const timezone = interaction.options.getString('timezone', true);
 
@@ -40,7 +37,7 @@ export default {
       if (!Intl.supportedValuesOf('timeZone').includes(timezone))
         throw new Error('Invalid timezone provided');
 
-      loggerWithCtx.info('Updating user notification with new timezone');
+      logger.info('Updating user notification with new timezone');
       await NotificationModel.findOneAndUpdate(
         { userId: interaction.user.id },
         {
@@ -51,7 +48,7 @@ export default {
         },
         { upsert: true },
       );
-      loggerWithCtx.info('Timezone updated successfully');
+      logger.info('Timezone updated successfully');
 
       await replyFromTemplate(interaction, replies.success, {
         template: {
@@ -62,7 +59,7 @@ export default {
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Error during timezone update');
+      logger.error({ err }, 'Error during timezone update');
       await replyFromTemplate(interaction, replies.error, {
         template: {
           timezone,
@@ -75,7 +72,7 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const loggerWithCtx = logger.child({ command: interaction.commandName });
+    const logger = getLoggerWithCtx(interaction);
 
     const focusedOptionValue = interaction.options.getFocused();
     const timezones = Intl.supportedValuesOf('timeZone').map((timezone) => ({
@@ -84,7 +81,7 @@ export default {
     }));
 
     if (focusedOptionValue.trim().length === 0) {
-      loggerWithCtx.debug('No input to filter yet, returning first 25 options');
+      logger.debug('No input to filter yet, returning first 25 options');
       await interaction.respond(timezones.slice(0, 25));
       return;
     }
