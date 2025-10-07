@@ -10,7 +10,7 @@ import {
   quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import logger from '../../../utilities/logger';
+import { getLoggerWithCtx } from '../../../utilities/logger';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import { KeywordType, NotificationModel } from '../../../models/notification';
 import dayjs from 'dayjs';
@@ -22,13 +22,10 @@ export default {
     .setDescriptionLocalization(Locale.German, 'Eine Liste aller Benachrichtigungen.'),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const loggerWithCtx = logger.child({
-      userId: interaction.user.id,
-      command: interaction.commandName,
-    });
+    const logger = getLoggerWithCtx(interaction);
 
     try {
-      loggerWithCtx.info('Fetching user notifications');
+      logger.info('Fetching user notifications');
       const notification = await NotificationModel.findOne(
         { userId: interaction.user.id },
         {
@@ -44,7 +41,7 @@ export default {
       );
 
       if (!notification) {
-        loggerWithCtx.info('No notifications found for user');
+        logger.info('No notifications found for user');
         await replyFromTemplate(interaction, replies.noNotifications, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -53,7 +50,7 @@ export default {
         return;
       }
 
-      loggerWithCtx.info(`Found ${notification.entries.length} notifications`);
+      logger.info(`Found ${notification.entries.length} notifications`);
       const templateData = notification.entries.map((entry) => ({
         name: entry.name,
         sentDms: entry.sentDms ?? 0,
@@ -63,6 +60,7 @@ export default {
           : null,
         expiresAt: entry.expiresAt ? dayjs(entry.expiresAt).format('YYYY-MM-DD') : null,
         intervalDays: entry.dmDayInterval,
+        deactivated: !!entry.deactivatedAt,
         keywords: entry.keywords
           .map((keyword) => ({
             isTitleType: keyword.type === KeywordType.MovieTitle,
@@ -80,7 +78,7 @@ export default {
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Error while fetching user notifications');
+      logger.error({ err }, 'Error while fetching user notifications');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -98,6 +96,10 @@ const replies = {
 
       {{#entries}}
         ${heading('{{{name}}}', HeadingLevel.Two)}
+
+        {{#deactivated}}
+          ${bold('Status')}: ${inlineCode('❌ DEACTIVATED')}
+        {{/deactivated}}
 
         ${bold('Keywords')}:
         {{#keywords}}
@@ -119,6 +121,10 @@ const replies = {
 
       {{#entries}}
         ${heading('{{{name}}}', HeadingLevel.Two)}
+
+        {{#deactivated}}
+          ${bold('Status')}: ${inlineCode('❌ DEAKTIVIERT')}
+        {{/deactivated}}
 
         ${bold('Schlüsselwörter')}:
         {{#keywords}}

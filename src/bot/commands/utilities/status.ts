@@ -11,7 +11,7 @@ import {
   subtext,
 } from 'discord.js';
 import { message, replyFromTemplate } from '../../../utilities/reply';
-import logger from '../../../utilities/logger';
+import { getLoggerWithCtx } from '../../../utilities/logger';
 import { BotConfigurationModel } from '../../../models/bot-configuration';
 import dayjs from 'dayjs';
 import setupCommand from './setup';
@@ -27,17 +27,13 @@ export default {
     .setContexts(InteractionContextType.Guild),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const loggerWithCtx = logger.child({
-      userId: interaction.user.id,
-      guildId: interaction.guildId,
-      command: interaction.commandName,
-    });
+    const logger = getLoggerWithCtx(interaction);
 
     try {
-      loggerWithCtx.info('Fetching bot configuration from database');
+      logger.info('Fetching bot configuration from database');
       const configuration = await BotConfigurationModel.findOne({ guildId: interaction.guildId });
       if (!configuration || !configuration.broadcastChannelId) {
-        loggerWithCtx.info('No bot configuration found for guild');
+        logger.info('No bot configuration found for guild');
         await replyFromTemplate(interaction, replies.success, {
           template: {
             latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
@@ -70,7 +66,7 @@ export default {
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Error during command execution');
+      logger.error({ err }, 'Error during command execution');
       await replyFromTemplate(interaction, replies.error, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),

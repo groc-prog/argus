@@ -20,10 +20,11 @@ import addNotificationCommand from '../notifications/add';
 import listNotificationCommand from '../notifications/notifications';
 import deleteNotificationCommand from '../notifications/delete';
 import setTimezoneCommand from '../notifications/set-timezone';
+import reactivateNotificationCommand from '../notifications/reactivate';
 import movieFeaturesCommand from '../movies/features';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import Fuse from 'fuse.js';
-import logger from '../../../utilities/logger';
+import { getLoggerWithCtx } from '../../../utilities/logger';
 
 export default {
   data: new SlashCommandBuilder()
@@ -65,21 +66,22 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const loggerWithCtx = logger.child({ command: interaction.commandName });
+    const logger = getLoggerWithCtx(interaction);
 
     const focusedOptionValue = interaction.options.getFocused();
     const commands = client.commands
       .values()
+      .filter((command) => command.data.name !== this.data.name)
       .map((command) => ({ name: command.data.name, value: command.data.name }))
       .toArray();
 
     if (focusedOptionValue.trim().length === 0) {
-      loggerWithCtx.debug('No input to filter yet, returning first 25 options');
+      logger.debug('No input to filter yet, returning first 25 options');
       await interaction.respond(commands.slice(0, 25));
       return;
     }
 
-    loggerWithCtx.debug('Fuzzy searching available channel options');
+    logger.debug('Fuzzy searching available channel options');
 
     const fuse = new Fuse(commands, {
       keys: ['name'],
@@ -138,8 +140,8 @@ const replies = {
 
       ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
-        `Select the ${inlineCode('broadcast channel')} where messages will be posted`,
-        `Define the ${inlineCode('broadcast schedule')} with a valid CRON expression`,
+        `Select the ${inlineCode('broadcast channel')} where messages will be posted.`,
+        `Define the ${inlineCode('broadcast schedule')} with a valid CRON expression.`,
         'Save your settings so the bot can operate automatically',
       ])}
 
@@ -175,9 +177,6 @@ const replies = {
       ${unorderedList([
         `Create a notification by giving it a unique ${inlineCode('name')}`,
         `Define one (or multiple) movie titles or features for which to look out for while checking movies. All available features can be viewed with the /${movieFeaturesCommand.data.name} command.`,
-        `Optionally set an ${inlineCode('expirationd ate')} date (YYYY-MM-DD) to let {{{botName}}} handle the deletion of this notification if that date is reached.`,
-        `Optionally set a ${inlineCode("max. number of DM's")} limit to prevent {{{botName}}} from notifying you after a given number of DM's have been sent.`,
-        `Optionally set flag to ${inlineCode('deactivate the entry when expired')} rather than deleting it. Deactivated notifications can later be reactivated.`,
       ])}
 
       ${heading('How movie title and feature filtering works', HeadingLevel.Three)}
@@ -199,9 +198,6 @@ const replies = {
       ${unorderedList([
         `Eine Benachrichtigung zu erstellen, indem du ihr einen eindeutigen ${inlineCode('Namen')} gibst`,
         `Einen oder mehrere Filmtitel oder Features festzulegen, nach denen beim Filmen gesucht werden soll. Alle verfügbaren Features können mit dem Befehl /${movieFeaturesCommand.data.name} angezeigt werden.`,
-        `Optional ein ${inlineCode('Verfallsdatum')} (JJJJ-MM-TT) festlegen, damit {{{botName}}} diese Benachrichtigung automatisch löscht, sobald das Datum erreicht ist.`,
-        `Optional eine ${inlineCode('maximale Anzahl')} an Benachrichtigungen festzulegen, um zu verhindern, dass {{{botName}}} dich nach einer bestimmten Anzahl gesendeter Benachrichtigungen weiterhin informiert.`,
-        `Optional die Benachrichtigung ${inlineCode('deaktivieren anstatt zu löschen')}. Deaktivierte Benachrichtigungen können jederzeit wieder aktiviert werden.`,
       ])}
 
       ${heading('So funktioniert das Suchen nach Filmtiteln und Features', HeadingLevel.Three)}
@@ -222,12 +218,12 @@ const replies = {
       ${bold('Command')}:  ${inlineCode(`/${listNotificationCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Display all your active notifications')}
 
-      Use this command to:
+      ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
-        'See all notifications you have created',
-        `Review each notification's ${inlineCode('name')} and it's ${inlineCode('keywords')}`,
-        'Check how many times each has been sent, when the last notification was triggered, and any expiration dates',
-        `Understand the sending ${inlineCode('interval')} for each notification`,
+        'See all notifications you have created.',
+        `Review each notification's ${inlineCode('name')} and it's ${inlineCode('keywords')}.`,
+        'Check how many times each has been sent, when the last notification was triggered, and any expiration dates.',
+        `Understand the sending ${inlineCode('interval')} for each notification.`,
       ])}
     `,
     [Locale.German]: message`
@@ -237,12 +233,12 @@ const replies = {
       ${bold('Befehl')}:  ${inlineCode(`/${listNotificationCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Zeige alle aktiven Benachrichtigungen an')}
 
-      Verwende diesen Befehl, um:
+      ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
       ${unorderedList([
-        'Alle von dir erstellten Benachrichtigungen zu sehen',
-        `Den ${inlineCode('Name')} und die ${inlineCode('Schlüsselwörter')} jeder Benachrichtigung zu überprüfen`,
-        'Zu sehen, wie oft jede bereits gesendet wurde, wann die letzte Benachrichtigung ausgelöst wurde und ob ein Ablaufdatum besteht',
-        `Das Sende-${inlineCode('Intervall')} jeder Benachrichtigung zu verstehen`,
+        'Alle von dir erstellten Benachrichtigungen zu sehen.',
+        `Den ${inlineCode('Name')} und die ${inlineCode('Schlüsselwörter')} jeder Benachrichtigung zu überprüfen.`,
+        'Zu sehen, wie oft jede bereits gesendet wurde, wann die letzte Benachrichtigung ausgelöst wurde und ob ein Ablaufdatum besteht.',
+        `Das Sende-${inlineCode('Intervall')} jeder Benachrichtigung zu verstehen.`,
       ])}
     `,
   },
@@ -254,14 +250,12 @@ const replies = {
       ${bold('Command')}:  ${inlineCode(`/${deleteNotificationCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Remove an existing notification')}
 
-      ${bold('Options')}:
-      • ${inlineCode('name')} — The unique name of the notification you want to remove.
-        ${italic('This field is required to target the correct notification.')}
-
-      Use this command to:
-      • Remove a notification that is no longer needed
-      • Keep your notifications organized and relevant
-      • Ensure that only the notifications you want continue to trigger
+      ${heading('Use this command to', HeadingLevel.Three)}
+      ${unorderedList([
+        'Remove a notification that is no longer needed.',
+        'Keep your notifications organized and relevant.',
+        'Ensure that only the notifications you want continue to trigger.',
+      ])}
 
       ${quote(italic(`Choose wisely — once removed, the notification vanishes like a phantom.`))}
     `,
@@ -272,16 +266,44 @@ const replies = {
       ${bold('Befehl')}:  ${inlineCode(`/${deleteNotificationCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Eine bestehende Benachrichtigung entfernen')}
 
-      ${bold('Optionen')}:
-      • ${inlineCode('name')} — Der eindeutige Name der Benachrichtigung, die du entfernen möchtest.
-        ${italic('Dieses Feld ist erforderlich, um die richtige Benachrichtigung zu treffen.')}
-
-      Verwende diesen Befehl, um:
-      • Eine Benachrichtigung zu entfernen, die nicht mehr benötigt wird
-      • Deine Benachrichtigungen organisiert und relevant zu halten
-      • Sicherzustellen, dass nur die gewünschten Benachrichtigungen weiterhin ausgelöst werden
+      ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
+      ${unorderedList([
+        'Eine Benachrichtigung zu entfernen, die nicht mehr benötigt wird.',
+        'Deine Benachrichtigungen organisiert und relevant zu halten.',
+        'Sicherzustellen, dass nur die gewünschten Benachrichtigungen weiterhin ausgelöst werden.',
+      ])}
 
       ${quote(italic(`Wähle weise — einmal entfernt, verschwindet die Benachrichtigung wie ein Phantom.`))}
+    `,
+  },
+  [reactivateNotificationCommand.data.name]: {
+    [Locale.EnglishUS]: message`
+    ${heading(':information_source:  REACTIVATE NOTIFICATION  :information_source:')}
+      In a world where once-silent messengers await their call… this command brings them back to life.
+
+      ${bold('Command')}:  ${inlineCode(`/${reactivateNotificationCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Reactivates a previously deactivated notification')}
+
+      ${heading('Use this command to', HeadingLevel.Three)}
+      ${unorderedList([
+        'Restore a deactivated notification.',
+        'Resume receiving messages for an existing setup.',
+        'Bring back a notification that once fell silent.',
+      ])}
+    `,
+    [Locale.German]: message`
+      ${heading(':information_source:  BENACHRICHTIGUNG REAKTIVIEREN  :information_source:')}
+      In einer Welt, in der einst verstummte Boten auf ihren Ruf warten… erweckt dieser Befehl sie zu neuem Leben.
+
+      ${bold('Befehl')}:  ${inlineCode(`/${reactivateNotificationCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Reaktiviert eine zuvor deaktivierte Benachrichtigung')}
+
+      ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
+      ${unorderedList([
+        'Eine deaktivierte Benachrichtigung wiederherzustellen.',
+        'Den Empfang von Nachrichten für eine bestehende Konfiguration fortzusetzen.',
+        'Eine Benachrichtigung zurückzubringen, die einst verstummte.',
+      ])}
     `,
   },
   [setTimezoneCommand.data.name]: {

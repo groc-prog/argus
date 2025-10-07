@@ -10,18 +10,15 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { message, replyFromTemplate } from '../../../utilities/reply';
-import logger from '../../../utilities/logger';
+import { getLoggerWithCtx } from '../../../utilities/logger';
 import dayjs from 'dayjs';
 import { KeywordType, NotificationModel } from '../../../models/notification';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('notify-me')
-    .setDescription('Get notifications about movies. Use without options for more information.')
-    .setDescriptionLocalization(
-      Locale.German,
-      'Werde über Filme benachrichtigt. Kann ohne Optionen für mehr Infos genutzt werden.',
-    )
+    .setDescription('Get notifications about movies.')
+    .setDescriptionLocalization(Locale.German, 'Werde über Filme benachrichtigt.')
     .setContexts(InteractionContextType.Guild)
     .addStringOption((option) =>
       option
@@ -100,10 +97,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const loggerWithCtx = logger.child({
-      userId: interaction.user.id,
-      command: interaction.commandName,
-    });
+    const logger = getLoggerWithCtx(interaction);
 
     const name = interaction.options.getString('name', true);
     const maxDms = interaction.options.getNumber('max-dms');
@@ -133,10 +127,10 @@ export default {
         },
       );
 
-      const expiresAtUtc = dayjs(expiresAt, 'YYYY-MM-DD', true).tz(notification.timezone).utc();
+      const expiresAtUtc = dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day');
 
       if ((!titlesArr || titlesArr.length === 0) && (!featuresArr || featuresArr.length === 0)) {
-        loggerWithCtx.info('No keywords defined, aborting');
+        logger.info('No keywords defined, aborting');
         await replyFromTemplate(interaction, replies.titleFeaturesValidationError, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -145,12 +139,11 @@ export default {
       }
 
       if (expiresAt) {
-        loggerWithCtx.info('Validating expiration date option');
-        const isValidDate =
-          expiresAtUtc.isValid() && expiresAtUtc.startOf('day').diff(dayjs.utc()) >= 0;
+        logger.info('Validating expiration date option');
+        const isValidDate = expiresAtUtc.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
 
         if (!isValidDate) {
-          loggerWithCtx.info('Invalid expiration date received, aborting');
+          logger.info('Invalid expiration date received, aborting');
           await replyFromTemplate(interaction, replies.dateValidationError, {
             template: {
               date: expiresAt,
@@ -163,13 +156,13 @@ export default {
         }
       }
 
-      loggerWithCtx.info('Checking if notification with same name already exists');
+      logger.info('Checking if notification with same name already exists');
       const exists = await NotificationModel.findOne(
         { userId: interaction.user.id, 'notifications.name': name },
         { _id: true },
       );
       if (exists) {
-        loggerWithCtx.info('Notification with the same name already exists');
+        logger.info('Notification with the same name already exists');
         await replyFromTemplate(interaction, replies.duplicateNotificationError, {
           template: {
             notificationName: name,
@@ -181,7 +174,7 @@ export default {
         return;
       }
 
-      loggerWithCtx.info(
+      logger.info(
         `Adding new notification with ${(featuresArr?.length ?? 0) + (titlesArr?.length ?? 0)}`,
       );
       const notificationEntry = {
@@ -189,7 +182,7 @@ export default {
         locale: interaction.locale,
         sentNotifications: maxDms ? 0 : undefined,
         maxDms: maxDms ?? undefined,
-        expiresAt: expiresAt ? expiresAtUtc.startOf('day').toDate() : undefined,
+        expiresAt: expiresAt ? expiresAtUtc.toDate() : undefined,
         keepAfterExpiration: deactivateOnExpiration ?? undefined,
         dmDayInterval,
         keywords: [
@@ -200,7 +193,7 @@ export default {
 
       notification.entries.push(notificationEntry);
       await notification.save();
-      loggerWithCtx.info('Notification created successfully');
+      logger.info('Notification created successfully');
 
       await replyFromTemplate(interaction, replies.success, {
         template: {
@@ -214,7 +207,7 @@ export default {
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Error during notification creation');
+      logger.error({ err }, 'Error during notification creation');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
