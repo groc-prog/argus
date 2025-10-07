@@ -45,6 +45,7 @@ export default {
 
       const broadcastChannel = await configuration.resolveBroadcastChannel();
       if (!broadcastChannel) {
+        logger.debug('No broadcast channel defined for bot configuration yet');
         await replyFromTemplate(interaction, replies.success, {
           template: {
             latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),

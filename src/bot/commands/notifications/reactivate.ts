@@ -87,7 +87,7 @@ export default {
 
       const expiresAtUtc = dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day');
       if (expiresAt) {
-        logger.info('Validating expiration date option');
+        logger.debug('Validating expiration date option');
         const isValidDate = expiresAtUtc.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
 
         if (!isValidDate) {

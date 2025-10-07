@@ -60,7 +60,7 @@ export default {
     const logger = getLoggerWithCtx(interaction);
 
     if (typeof broadcastScheduleCron === 'string') {
-      logger.info('Validating configuration options');
+      logger.debug('Validating configuration options');
       try {
         const cron = new Cron(broadcastScheduleCron);
         cron.stop();
@@ -82,7 +82,7 @@ export default {
 
     if (broadcastChannelId) {
       try {
-        logger.info({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
+        logger.debug({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
 
         const channel = await interaction.guild?.channels.fetch(broadcastChannelId);
         const isValidChannel = BotConfigurationModel.isValidBroadcastChannel(channel);

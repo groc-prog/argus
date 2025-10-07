@@ -6,16 +6,20 @@ export default {
   name: Events.InteractionCreate,
 
   async execute(interaction: Interaction) {
+    if (!interaction.isAutocomplete()) return;
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command || !command.autocomplete) return;
+
     try {
-      if (!interaction.isAutocomplete()) return;
-
-      const command = client.commands.get(interaction.commandName);
-      if (!command || !command.autocomplete) return;
-
-      logger.info(`Received autocomplete interaction for command ${command.data.name}`);
+      logger.info({ command: command.data.name }, `Received autocomplete interaction`);
       await command.autocomplete(interaction);
+      logger.info({ command: command.data.name }, `Autocomplete interaction finished`);
     } catch (err) {
-      logger.error({ err }, 'Unhandled error during autocomplete interaction handling');
+      logger.error(
+        { err, command: command.data.name },
+        'Unhandled error during autocomplete interaction handling',
+      );
     }
   },
 };

@@ -86,6 +86,7 @@ export default {
       return;
     }
 
+    logger.debug('Fuzzy searching timezone options');
     const fuse = new Fuse(timezones, {
       keys: ['name'],
     });
