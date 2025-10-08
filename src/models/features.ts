@@ -1,6 +1,6 @@
 import { Locale } from 'discord.js';
 
-export const I18N = {
+export const I18N: { [key: string]: Partial<Record<Locale, string>> } = {
   '2d': {
     [Locale.EnglishUS]: '2D',
     [Locale.German]: '2D',
