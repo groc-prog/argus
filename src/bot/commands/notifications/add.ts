@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   heading,
+  HeadingLevel,
   inlineCode,
   InteractionContextType,
   italic,
@@ -13,6 +14,7 @@ import { message, replyFromTemplate } from '../../../utilities/reply';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import dayjs from 'dayjs';
 import { KeywordType, NotificationModel } from '../../../models/notification';
+import { FEATURES } from '../../../models/features';
 
 export default {
   data: new SlashCommandBuilder()
@@ -57,19 +59,23 @@ export default {
       option
         .setName('titles')
         .setNameLocalization(Locale.German, 'titel')
-        .setDescription('A list of movie titles which make a movie eligible for a notification.')
+        .setDescription(
+          'A `;` separated list of movie titles which make a movie eligible for a notification.',
+        )
         .setDescriptionLocalization(
           Locale.German,
-          'Eine Liste von Filmtiteln, die einen Film für eine Benachrichtigung qualifizieren.',
+          'Eine `;` getrennte Liste von Filmtiteln, die einen Film für eine Benachrichtigung qualifizieren.',
         ),
     )
     .addStringOption((option) =>
       option
         .setName('features')
-        .setDescription('A list of features which make a movie eligible for a notification.')
+        .setDescription(
+          'A `;` separated list of features which make a movie eligible for a notification.',
+        )
         .setDescriptionLocalization(
           Locale.German,
-          'Eine Liste von Features, die einen Film für eine Benachrichtigung qualifizieren.',
+          'Eine `;` getrennte Liste von Features, die einen Film für eine Benachrichtigung qualifizieren.',
         ),
     )
     .addBooleanOption((option) =>
@@ -112,6 +118,22 @@ export default {
     const features = interaction.options.getString('features');
     const featuresArr = features?.split(';').filter((feature) => feature.length !== 0);
 
+    const omittedFeatures: string[] = [];
+    const validFeatures =
+      featuresArr
+        ?.map((feature) => {
+          // Check if the feature is valid
+          const match = Object.entries(FEATURES).find((mapping) => mapping[1].has(feature));
+          if (!match) {
+            // Remember omitted features for later
+            omittedFeatures.push(feature);
+            return null;
+          }
+
+          return match[0];
+        })
+        .filter((feature) => feature !== null) ?? [];
+
     try {
       const notification = await NotificationModel.findOneAndUpdate(
         { userId: interaction.user.id },
@@ -129,7 +151,7 @@ export default {
 
       const expiresAtUtc = dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day');
 
-      if ((!titlesArr || titlesArr.length === 0) && (!featuresArr || featuresArr.length === 0)) {
+      if ((!titlesArr || titlesArr.length === 0) && validFeatures.length === 0) {
         logger.info('No keywords defined, aborting');
         await replyFromTemplate(interaction, replies.titleFeaturesValidationError, {
           interaction: {
@@ -175,7 +197,7 @@ export default {
       }
 
       logger.debug(
-        `Adding new notification with ${(featuresArr?.length ?? 0) + (titlesArr?.length ?? 0)}`,
+        `Adding new notification with ${validFeatures.length + (titlesArr?.length ?? 0)}`,
       );
       const notificationEntry = {
         name,
@@ -186,7 +208,7 @@ export default {
         keepAfterExpiration: deactivateOnExpiration ?? undefined,
         dmDayInterval,
         keywords: [
-          ...(featuresArr?.map((value) => ({ type: KeywordType.MovieFeature, value })) ?? []),
+          ...validFeatures.map((value) => ({ type: KeywordType.MovieFeature, value })),
           ...(titlesArr?.map((value) => ({ type: KeywordType.MovieTitle, value })) ?? []),
         ],
       };
@@ -201,6 +223,8 @@ export default {
           expiresAt: expiresAt ? dayjs(expiresAt).format('YYYY-MM-DD') : undefined,
           maxDms,
           dmDayInterval,
+          omittedFeatures,
+          hasOmittedFeatures: omittedFeatures.length !== 0,
         },
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -227,6 +251,13 @@ const replies = {
     {{#dmDayInterval}}You will receive ${inlineCode('{{{dmDayInterval}}}x')} DM(s) per day as long as the notification is active.{{/dmDayInterval}}
     {{#expiresAt}}It will expire on ${inlineCode('{{{expiresAt}}}')}.{{/expiresAt}}
     {{#maxDms}}It will automatically end after ${inlineCode('{{{maxDms}}}')} DM's.{{/maxDms}}
+    {{#hasOmittedFeatures}}
+      ${heading(':warning:  Some features have been omitted', HeadingLevel.Three)}
+      The following features are unknown to the bot and have thus been omitted:
+      {{#omittedFeatures}}
+        - ${inlineCode('{{{.}}}')}
+      {{/omittedFeatures}}
+    {{/hasOmittedFeatures}}
 
     ${quote(italic(`The beacon is lit. You will be notified when the moment arrives.`))}
   `,
@@ -238,6 +269,13 @@ const replies = {
     {{#dmDayInterval}}Du erhältst ${inlineCode('{{{dmDayInterval}}}x')} Benachrichtigung(en) per Tag, solange sie aktiv ist.{{/dmDayInterval}}
     {{#expiresAt}}Sie läuft am ${inlineCode('{{{expiresAt}}}')} ab.{{/expiresAt}}
     {{#maxDms}}Sie endet automatisch nach ${inlineCode('{{{maxDms}}}')} Benachrichtigungen.{{/maxDms}}
+    {{#hasOmittedFeatures}}
+      ${heading(':warning:  Einige Features wurde weggelassen', HeadingLevel.Three)}
+      Folgende Features sind dem Bot unbekannt und wurden daher weggelassen:
+      {{#omittedFeatures}}
+        - ${inlineCode('{{{.}}}')}
+      {{/omittedFeatures}}
+    {{/hasOmittedFeatures}}
 
     ${quote(italic(`Das Signal ist gesetzt. Du wirst benachrichtigt, sobald der Moment gekommen ist.`))}
   `,
