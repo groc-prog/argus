@@ -52,31 +52,30 @@ export default {
   async execute(interaction: ChatInputCommandInteraction) {
     const logger = getLoggerWithCtx(interaction);
 
-    const notificationEntryId = interaction.options.getString('notification', true);
+    const notificationEntryIdOrName = interaction.options.getString('notification', true);
     const expiresAt = interaction.options.getString('expiration-date');
 
     try {
-      if (!isValidObjectId(notificationEntryId)) {
-        logger.info('Received invalid ObjectId, aborting');
-        await replyFromTemplate(interaction, replies.notificationNotFound, {
-          interaction: {
-            flags: MessageFlags.Ephemeral,
-          },
-        });
-        return;
-      }
-
-      logger.info(`Getting notification ${notificationEntryId}`);
+      logger.info(`Getting notification ${notificationEntryIdOrName}`);
       const notification = await NotificationModel.findOne({
         userId: interaction.user.id,
-        'entries._id': notificationEntryId,
+        $or: [
+          {
+            'entries._id': isValidObjectId(notificationEntryIdOrName)
+              ? new Types.ObjectId(notificationEntryIdOrName)
+              : null,
+          },
+          { 'entries.name': notificationEntryIdOrName },
+        ],
       });
-      if (
-        !notification ||
-        !notification.entries.find((entry) => entry._id.toString() === notificationEntryId)
-          ?.deactivatedAt
-      ) {
-        logger.info(`Notification ${notificationEntryId} not found`);
+
+      const isDeactivated = !!notification?.entries.find(
+        (entry) =>
+          entry._id.toString() === notificationEntryIdOrName ||
+          entry.name === notificationEntryIdOrName,
+      )?.deactivatedAt;
+      if (!notification || !isDeactivated) {
+        logger.info(`No notification matching ${notificationEntryIdOrName} found`);
         await replyFromTemplate(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -105,8 +104,20 @@ export default {
       }
 
       const entryIndex = notification.entries.findIndex(
-        (entry) => entry._id.toString() === notificationEntryId,
+        (entry) =>
+          entry._id.toString() === notificationEntryIdOrName ||
+          entry.name === notificationEntryIdOrName,
       );
+      if (entryIndex === -1) {
+        logger.info(`No notification matching ${notificationEntryIdOrName} found`);
+        await replyFromTemplate(interaction, replies.notificationNotFound, {
+          interaction: {
+            flags: MessageFlags.Ephemeral,
+          },
+        });
+        return;
+      }
+
       const entry = notification.entries[entryIndex] as Notification['entries'][number];
 
       entry.sentDms = entry.maxDms ? 0 : undefined;
@@ -147,7 +158,7 @@ export default {
         _id: Types.ObjectId;
         entries: { name: string; _id: Types.ObjectId }[];
       }>([
-        { $match: { userId: interaction.user.id, 'entries.deactivatedAt': { $ne: null } } },
+        { $match: { userId: interaction.user.id, 'entries.deactivatedAt': { $exists: true } } },
         {
           $project: {
             entries: {
@@ -156,7 +167,7 @@ export default {
                   $filter: {
                     input: '$entries',
                     as: 'entry',
-                    cond: { $ne: ['$$entry.deactivatedAt', null] },
+                    cond: { $ne: [{ $ifNull: ['$$entry.deactivatedAt', false] }, false] },
                   },
                 },
                 as: 'entry',

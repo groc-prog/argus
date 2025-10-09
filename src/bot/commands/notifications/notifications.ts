@@ -9,6 +9,7 @@ import {
   MessageFlags,
   quote,
   SlashCommandBuilder,
+  unorderedList,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { message, replyFromTemplate } from '../../../utilities/reply';
@@ -99,7 +100,7 @@ const replies = {
 
         ${bold('Keywords')}:
         {{#keywords}}
-          - ${inlineCode('{{{value}}} {{#isTitleType}}(Title){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')}
+          ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Title){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
         {{/keywords}}
 
         ${bold('Sent')}: ${inlineCode('{{#sentDms}}{{{sentDms}}}{{/sentDms}}{{^sentDms}}0{{/sentDms}}/{{#maxDms}}{{{maxDms}}}{{/maxDms}}{{^maxDms}}∞{{/maxDms}}')}
@@ -120,7 +121,7 @@ const replies = {
 
         ${bold('Schlüsselwörter')}:
         {{#keywords}}
-          - ${inlineCode('{{{value}}} {{#isTitleType}}(Titel){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')}
+          ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Titel){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
         {{/keywords}}
 
         ${bold('Gesendet')}: ${inlineCode('{{#sentDms}}{{{sentDms}}}{{/sentDms}}{{^sentDms}}0{{/sentDms}}/{{#maxDms}}{{{maxDms}}}{{/maxDms}}{{^maxDms}}∞{{/maxDms}}')}

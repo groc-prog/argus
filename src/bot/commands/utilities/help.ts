@@ -22,6 +22,8 @@ import deleteNotificationCommand from '../notifications/delete';
 import setTimezoneCommand from '../notifications/set-timezone';
 import reactivateNotificationCommand from '../notifications/reactivate';
 import movieFeaturesCommand from '../movies/features';
+import movieDetailsCommand from '../movies/details';
+import movieScreeningsCommand from '../movies/screenings';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import Fuse from 'fuse.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
@@ -256,7 +258,7 @@ const replies = {
         'Ensure that only the notifications you want continue to trigger.',
       ])}
 
-      ${quote(italic(`Choose wisely — once removed, the notification vanishes like a phantom.`))}
+      ${quote(`Choose wisely — once removed, the notification vanishes like a phantom.`)}
     `,
     [Locale.German]: message`
       ${heading(':information_source:  BENACHRICHTIGUNG LÖSCHEN  :information_source:')}
@@ -272,7 +274,7 @@ const replies = {
         'Sicherzustellen, dass nur die gewünschten Benachrichtigungen weiterhin ausgelöst werden.',
       ])}
 
-      ${quote(italic(`Wähle weise — einmal entfernt, verschwindet die Benachrichtigung wie ein Phantom.`))}
+      ${quote(`Wähle weise — einmal entfernt, verschwindet die Benachrichtigung wie ein Phantom.`)}
     `,
   },
   [reactivateNotificationCommand.data.name]: {
@@ -316,7 +318,7 @@ const replies = {
         `Set your current timezone so the bot can correctly handle notifications and other movie updates. If no timezone is defined, defaults to ${inlineCode('Europe/Vienna')}.`,
       ])}
 
-      ${quote(italic('You should always make sure that you have the correct timezone set, otherwise some things might not behave as expected.'))}
+      ${quote('You should always make sure that you have the correct timezone set, otherwise some things might not behave as expected.')}
     `,
     [Locale.German]: message`
       ${heading(':information_source:  ZEITZONEN-GUIDE  :information_source:')}
@@ -328,7 +330,103 @@ const replies = {
         `Deine aktuelle Zeitzone festzulegen, damit der Bot Benachrichtigungen und andere Film-Updates korrekt handhaben kann. Wenn keine Zeitzone definiert ist, wird standardmäßig ${inlineCode('Europe/Vienna')} verwendet.`,
       ])}
 
-      ${quote(italic('Du solltest immer sicherstellen, dass du die richtige Zeitzone eingestellt hast, da sonst manche Dinge möglicherweise nicht wie erwartet funktionieren.'))}
+      ${quote('Du solltest immer sicherstellen, dass du die richtige Zeitzone eingestellt hast, da sonst manche Dinge möglicherweise nicht wie erwartet funktionieren.')}
+    `,
+  },
+  [movieFeaturesCommand.data.name]: {
+    [Locale.EnglishUS]: message`
+      ${heading(':information_source:  MOVIE FEATURES  :information_source:')}
+      In a world where every story is made of fragments… this command unveils the essence of each movie trait.
+
+      ${bold('Command')}:  ${inlineCode(`/${movieFeaturesCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Display all known movie features recognized by the bot')}
+
+      ${heading('Use this command to', HeadingLevel.Three)}
+      ${unorderedList([
+        'Discover all features that can be used when creating notifications.',
+        `Learn which ${inlineCode('features')} make a movie eligible for alerts.`,
+        'Ensure you are using valid and recognized feature names.',
+        `Get inspiration for customizing your ${inlineCode(`/${addNotificationCommand.data.name}`)} notifications.`,
+      ])}
+    `,
+    [Locale.German]: message`
+      ${heading(':information_source:  FILM-FEATURES  :information_source:')}
+      In einer Welt, in der jede Geschichte aus Fragmenten besteht… enthüllt dieser Befehl die Essenz jeder Filmeigenschaft.
+
+      ${bold('Befehl')}:  ${inlineCode(`/${movieFeaturesCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Zeigt alle vom Bot erkannten Film-Features an')}
+
+      ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
+      ${unorderedList([
+        'Alle Features zu entdecken, die beim Erstellen von Benachrichtigungen verwendet werden können.',
+        `Zu erfahren, welche ${inlineCode('Features')} einen Film für Benachrichtigungen qualifizieren.`,
+        'Sicherzustellen, dass du gültige und erkannte Feature-Namen verwendest.',
+        `Inspiration für die Anpassung deiner ${inlineCode(`/${addNotificationCommand.data.name}`)}-Benachrichtigungen zu erhalten.`,
+      ])}
+    `,
+  },
+  [movieDetailsCommand.data.name]: {
+    [Locale.EnglishUS]: message`
+      ${heading(':information_source:  MOVIE DETAILS  :information_source:')}
+      In a world where every story has layers… this command reveals them.
+
+      ${bold('Command')}:  ${inlineCode(`/${movieDetailsCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Show detailed information about a specific movie.')}
+
+      ${heading('Use this command to', HeadingLevel.Three)}
+      ${unorderedList([
+        'Discover the description, genres, and age rating of a movie.',
+        'See its total runtime in minutes.',
+      ])}
+
+      ${quote(`You can use the ${inlineCode(`/${movieScreeningsCommand.data.name}`)} command to check when the movie is shown next.`)}
+    `,
+    [Locale.German]: message`
+      ${heading(':information_source:  FILMDETAILS  :information_source:')}
+      In einer Welt, in der jede Geschichte Schichten hat… enthüllt dir dieser Befehl alles.
+
+      ${bold('Befehl')}:  ${inlineCode(`/${movieDetailsCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Zeige detaillierte Informationen zu einem bestimmten Film an.')}
+
+      ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
+      ${unorderedList([
+        'Die Beschreibung, Genres und Altersfreigabe eines Films zu entdecken.',
+        'Die Gesamtlaufzeit in Minuten zu sehen.',
+      ])}
+
+      ${quote(`Du kannst den ${inlineCode(`/${movieScreeningsCommand.data.name}`)} Befehl nutzen, um zu checken, wann die nächste Vorstellung stattfindet.`)}
+    `,
+  },
+  [movieScreeningsCommand.data.name]: {
+    [Locale.EnglishUS]: message`
+      ${heading(':information_source:  MOVIE SCREENINGS  :information_source:')}
+      In a world where every story needs a stage… this command reveals the times and places.
+
+      ${bold('Command')}:  ${inlineCode(`/${movieScreeningsCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Display all scheduled screenings for a specific movie.')}
+
+      ${heading('Use this command to', HeadingLevel.Three)}
+      ${unorderedList([
+        'See when and where a movie will be shown.',
+        'Check the exact start time of each screening.',
+        'Find out which auditorium hosts the screening.',
+        'Review extra features of each screening, like 3D or Dolby Atmos.',
+      ])}
+    `,
+    [Locale.German]: message`
+      ${heading(':information_source:  FILMVORSTELLUNGEN  :information_source:')}
+      In einer Welt, in der jede Geschichte eine Bühne braucht… zeigt dir dieser Befehl die Zeiten und Orte.
+
+      ${bold('Befehl')}:  ${inlineCode(`/${movieScreeningsCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Zeige alle geplanten Vorstellungen eines bestimmten Films an.')}
+
+      ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
+      ${unorderedList([
+        'Zu sehen, wann und wo ein Film gezeigt wird.',
+        'Die genaue Startzeit jeder Vorstellung einzusehen.',
+        'Herauszufinden, in welchem Saal die Vorstellung stattfindet.',
+        'Zusätzliche Features der Vorstellung zu prüfen, wie 3D oder Dolby Atmos.',
+      ])}
     `,
   },
   unknown: {

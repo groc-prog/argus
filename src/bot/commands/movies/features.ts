@@ -7,6 +7,7 @@ import {
   MessageFlags,
   quote,
   SlashCommandBuilder,
+  unorderedList,
 } from 'discord.js';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import { I18N } from '../../../models/features';
@@ -14,7 +15,11 @@ import { I18N } from '../../../models/features';
 export default {
   data: new SlashCommandBuilder()
     .setName('movie-features')
-    .setDescription('A complete list of all available movie features.'),
+    .setDescription('A complete list of all available movie features.')
+    .setDescriptionLocalization(
+      Locale.German,
+      'Eine vollständige Liste von allen verfügbaren Film-Features.',
+    ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     const features = Object.values(I18N)
@@ -39,7 +44,7 @@ const replies = {
       In a world where every movie shines for a reason… these are the traits that define them.
 
       {{#features}}
-        - ${inlineCode('{{{.}}}')}
+        ${unorderedList([inlineCode('{{{.}}}')])}
       {{/features}}
 
       ${quote(italic(`Each feature tells its own story — combine them wisely to craft your perfect notifications.`))}
@@ -49,7 +54,7 @@ const replies = {
       In einer Welt, in der jeder Film aus einem besonderen Grund leuchtet… sind dies die Merkmale, die ihn definieren.
 
       {{#features}}
-        - ${inlineCode('{{{.}}}')}
+        ${unorderedList([inlineCode('{{{.}}}')])}
       {{/features}}
 
       ${quote(italic(`Jedes Feature erzählt seine eigene Geschichte — kombiniere sie weise, um deine perfekten Benachrichtigungen zu gestalten.`))}

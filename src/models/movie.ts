@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import logger from '../utilities/logger';
+import Fuse from 'fuse.js';
 
 const screeningSchema = new mongoose.Schema({
   /**
@@ -46,6 +48,28 @@ const movieSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    statics: {
+      fuzzySearchMovies: async (search: string): Promise<{ name: string; value: string }[]> => {
+        const movies = await MovieModel.find({}, { title: 1, _id: 1 });
+        const movieOptions = movies.map((movie) => ({
+          name: movie.title,
+          value: movie._id.toString(),
+        }));
+
+        if (search.trim().length === 0) {
+          logger.debug('No input to filter yet, returning first 25 options');
+          return movieOptions.slice(0, 25);
+        }
+
+        logger.debug('Fuzzy searching available movie options');
+        const fuse = new Fuse(movieOptions, {
+          keys: ['name'],
+        });
+        const matches = fuse.search(search);
+
+        return matches.slice(0, 25).map((match) => match.item);
+      },
+    },
   },
 );
 
