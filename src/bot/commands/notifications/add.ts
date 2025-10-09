@@ -9,6 +9,7 @@ import {
   MessageFlags,
   quote,
   SlashCommandBuilder,
+  unorderedList,
 } from 'discord.js';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import { getLoggerWithCtx } from '../../../utilities/logger';
@@ -256,7 +257,7 @@ const replies = {
       ${heading(':warning:  Some features have been omitted', HeadingLevel.Three)}
       The following features are unknown to the bot and have thus been omitted:
       {{#omittedFeatures}}
-        - ${inlineCode('{{{.}}}')}
+        ${unorderedList([inlineCode('{{{.}}}')])}
       {{/omittedFeatures}}
     {{/hasOmittedFeatures}}
 
@@ -275,7 +276,7 @@ const replies = {
       ${heading(':warning:  Einige Features wurde weggelassen', HeadingLevel.Three)}
       Folgende Features sind dem Bot unbekannt und wurden daher weggelassen:
       {{#omittedFeatures}}
-        - ${inlineCode('{{{.}}}')}
+        ${unorderedList([inlineCode('{{{.}}}')])}
       {{/omittedFeatures}}
     {{/hasOmittedFeatures}}
 

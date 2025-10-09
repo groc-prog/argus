@@ -39,32 +39,41 @@ export default {
   async execute(interaction: ChatInputCommandInteraction) {
     const logger = getLoggerWithCtx(interaction);
 
-    const notificationEntryId = interaction.options.getString('notification', true);
+    const notificationEntryIdOrName = interaction.options.getString('notification', true);
 
     try {
-      if (!isValidObjectId(notificationEntryId)) {
-        logger.info('Received invalid ObjectId, aborting');
-        await replyFromTemplate(interaction, replies.notificationNotFound, {
-          interaction: {
-            flags: MessageFlags.Ephemeral,
-          },
-        });
-        return;
-      }
-
       logger.info('Removing notification by ObjectId');
       const result = await NotificationModel.findOneAndUpdate(
-        { userId: interaction.user.id, 'entries._id': new Types.ObjectId(notificationEntryId) },
+        {
+          userId: interaction.user.id,
+          $or: [
+            {
+              'entries._id': isValidObjectId(notificationEntryIdOrName)
+                ? new Types.ObjectId(notificationEntryIdOrName)
+                : null,
+            },
+            { 'entries.name': notificationEntryIdOrName },
+          ],
+        },
         {
           $pull: {
-            entries: { _id: new Types.ObjectId(notificationEntryId) },
+            entries: {
+              $or: [
+                {
+                  _id: isValidObjectId(notificationEntryIdOrName)
+                    ? new Types.ObjectId(notificationEntryIdOrName)
+                    : null,
+                },
+                { name: notificationEntryIdOrName },
+              ],
+            },
           },
         },
         { new: false },
       );
 
       if (!result) {
-        logger.info(`No notification with ObjectId ${notificationEntryId} found`);
+        logger.info(`No notification matching ${notificationEntryIdOrName} found`);
         await replyFromTemplate(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -76,7 +85,11 @@ export default {
       logger.info('Notification removed successfully');
       await replyFromTemplate(interaction, replies.success, {
         template: {
-          notificationName: result.entries.find((entry) => entry.id === notificationEntryId)?.name,
+          notificationName: result.entries.find(
+            (entry) =>
+              entry._id.toString() === notificationEntryIdOrName ||
+              entry.name === notificationEntryIdOrName,
+          )?.name,
         },
         interaction: {
           flags: MessageFlags.Ephemeral,
