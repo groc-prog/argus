@@ -76,28 +76,14 @@ export class WebScraperService {
 
       loggerWithCtx.info(`Found ${movieWrappers.length} movie wrapper elements`);
       for (const movieWrapper of movieWrappers) {
-        const extractedData = await this.extractMovieContents(page, movieWrapper, this.job.name);
+        const extractedData = await this.extractMovieContents(page, movieWrapper);
         if (!extractedData) continue;
 
         scrapedMovies.push(extractedData);
       }
 
       loggerWithCtx.info('Extracted data successfully, storing data to database');
-      const operations = scrapedMovies.map((movieData) =>
-        MovieModel.findOneAndUpdate(
-          { title: movieData.title },
-          {
-            $set: movieData,
-          },
-          {
-            upsert: true,
-          },
-        ),
-      );
-
-      loggerWithCtx.debug(`Running ${operations.length} operations concurrently`);
-      await Promise.all(operations);
-      loggerWithCtx.info('Scheduled job finished');
+      await this.storeMovieData(scrapedMovies);
     } catch (err) {
       loggerWithCtx.error(
         { err, job: this.job.name },
@@ -107,21 +93,36 @@ export class WebScraperService {
     }
   }
 
+  private async storeMovieData(movies: Movie[]): Promise<void> {
+    const loggerWithCtx = logger.child({ job: this.job?.name });
+
+    const operations = movies.map((movieData) =>
+      MovieModel.findOneAndUpdate(
+        { title: movieData.title },
+        {
+          $set: movieData,
+        },
+        {
+          upsert: true,
+        },
+      ),
+    );
+
+    const removeOldScreeningsOperation = MovieModel.updateMany(
+      { title: { $nin: movies.map((movie) => movie.title) } },
+      { $set: { screenings: [] } },
+    );
+
+    loggerWithCtx.debug(`Running ${operations.length} operations concurrently`);
+    await Promise.all([...operations, removeOldScreeningsOperation]);
+    loggerWithCtx.info('Scheduled job finished');
+  }
+
   private async extractMovieContents(
     page: Page,
     element: ElementHandle<HTMLDivElement>,
-    jobName: string,
   ): Promise<Movie | null> {
-    if (!this.job) {
-      logger.error(
-        { service: this.constructor.name },
-        'Service not initialized yet, can not run job',
-      );
-      return null;
-    }
-
-    const logCtx = { job: jobName, movieWrapper: element.toString() };
-    const loggerWithCtx = logger.child(logCtx);
+    const loggerWithCtx = logger.child({ job: this.job?.name });
 
     try {
       const extractedMovieData: Partial<Movie> = {};
@@ -223,11 +224,7 @@ export class WebScraperService {
 
       loggerWithCtx.info(`Found ${screeningWrappers.length} screening wrapper elements`);
       for (const screeningWrapper of screeningWrappers) {
-        const extractedScreeningData = await this.extractScreeningContents(
-          page,
-          screeningWrapper,
-          logCtx,
-        );
+        const extractedScreeningData = await this.extractScreeningContents(screeningWrapper);
         if (!extractedScreeningData) continue;
 
         if (!extractedMovieData.screenings)
@@ -246,14 +243,9 @@ export class WebScraperService {
   }
 
   private async extractScreeningContents(
-    page: Page,
     screeningElement: ElementHandle<HTMLDivElement>,
-    logCtx: { job: string; movieWrapper: string },
   ): Promise<Movie['screenings'] | null> {
-    const loggerWithCtx = logger.child({
-      ...logCtx,
-      screeningWrapper: screeningElement.toString(),
-    });
+    const loggerWithCtx = logger.child({ job: this.job?.name });
     const extractedScreeningData = [] as unknown as Movie['screenings'];
 
     try {
