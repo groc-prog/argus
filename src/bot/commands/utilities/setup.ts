@@ -50,14 +50,27 @@ export default {
           Locale.German,
           'Ein CRON-Ausdruck, der beschreibt, in welchem Interval der Bot Film-Updates posten soll.',
         ),
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName('broadcasts-enabled')
+        .setNameLocalization(Locale.German, 'broadcasts-aktiviert')
+        .setDescription('Whether the bot should post movie updates in the server.')
+        .setDescriptionLocalization(
+          Locale.German,
+          'Ob der Bot Film-Updates in dem server posten soll.',
+        ),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     const broadcastChannelId = interaction.options.getString('broadcast-channel');
     const broadcastScheduleCron = interaction.options.getString('broadcast-schedule');
+    const broadcastsEnabled = interaction.options.getBoolean('broadcasts-enabled');
     const partialConfiguration: Partial<BotConfiguration> = {};
 
     const logger = getLoggerWithCtx(interaction);
+
+    if (broadcastsEnabled !== null) partialConfiguration.broadcastsDisabled = !broadcastsEnabled;
 
     if (typeof broadcastScheduleCron === 'string') {
       logger.debug('Validating configuration options');
@@ -135,12 +148,14 @@ export default {
       );
       logger.info('Bot configuration successfully updated');
 
+      const broadcastChannel = await updatedConfiguration.resolveBroadcastChannel();
       await replyFromTemplate(interaction, replies.success, {
         template: {
           setupFinished: !!updatedConfiguration.broadcastChannelId,
           setupCommand: interaction.commandName,
-          broadcastChannel: await updatedConfiguration.resolveBroadcastChannel(),
+          broadcastChannel: broadcastChannel?.name,
           broadcastSchedule: updatedConfiguration.broadcastCronSchedule,
+          broadcastsEnabled: !updatedConfiguration.broadcastsDisabled,
         },
       });
     } catch (err) {
@@ -203,6 +218,7 @@ const replies = {
       ${bold('Setup Status')}:  ${inlineCode('{{#setupFinished}}DONE{{/setupFinished}}{{^setupFinished}}PENDING{{/setupFinished}}')}
       ${bold('Broadcast Channel')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NOT CONFIGURED{{/broadcastChannel}}')}
       ${bold('Broadcast Schedule')}:  ${inlineCode('{{{broadcastSchedule}}}')}
+      ${bold('Broadcasts Enabled')}:  ${inlineCode('{{#broadcastsEnabled}}YES{{/broadcastsEnabled}}{{^broadcastsEnabled}}NO{{/broadcastsEnabled}}')}
 
       {{#setupFinished}}
         ${quote(italic('The stage is illuminated, the gears are aligned, and the show goes on without delay.'))}
@@ -218,6 +234,7 @@ const replies = {
       ${bold('Setup-Status')}:  ${inlineCode('{{#setupFinished}}ERLEDIGT{{/setupFinished}}{{^setupFinished}}AUSSTEHEND{{/setupFinished}}')}
       ${bold('Broadcast-Kanal')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NICHT KONFIGURIERT{{/broadcastChannel}}')}
       ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{{broadcastSchedule}}}')}
+      ${bold('Broadcasts Aktiviert')}:  ${inlineCode('{{#broadcastsEnabled}}JA{{/broadcastsEnabled}}{{^broadcastsEnabled}}NEIN{{/broadcastsEnabled}}')}
 
       {{#setupFinished}}
         ${quote(italic('Die Bühne ist erleuchtet, alle Zahnräder greifen ineinander, und die Show geht ohne Verzögerung weiter.'))}

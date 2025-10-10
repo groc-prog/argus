@@ -159,6 +159,7 @@ export default {
             flags: MessageFlags.Ephemeral,
           },
         });
+        return;
       }
 
       if (expiresAt) {
@@ -181,7 +182,7 @@ export default {
 
       logger.info('Checking if notification with same name already exists');
       const exists = await NotificationModel.findOne(
-        { userId: interaction.user.id, 'notifications.name': name },
+        { userId: interaction.user.id, 'entries.name': name },
         { _id: true },
       );
       if (exists) {
@@ -252,7 +253,6 @@ const replies = {
     {{#dmDayInterval}}You will receive ${inlineCode('{{{dmDayInterval}}}x')} DM(s) per day as long as the notification is active.{{/dmDayInterval}}
     {{#expiresAt}}It will expire on ${inlineCode('{{{expiresAt}}}')}.{{/expiresAt}}
     {{#maxDms}}It will automatically end after ${inlineCode('{{{maxDms}}}')} DM's.{{/maxDms}}
-
     {{#hasOmittedFeatures}}
       ${heading(':warning:  Some features have been omitted', HeadingLevel.Three)}
       The following features are unknown to the bot and have thus been omitted:
@@ -271,7 +271,6 @@ const replies = {
     {{#dmDayInterval}}Du erhältst ${inlineCode('{{{dmDayInterval}}}x')} Benachrichtigung(en) per Tag, solange sie aktiv ist.{{/dmDayInterval}}
     {{#expiresAt}}Sie läuft am ${inlineCode('{{{expiresAt}}}')} ab.{{/expiresAt}}
     {{#maxDms}}Sie endet automatisch nach ${inlineCode('{{{maxDms}}}')} Benachrichtigungen.{{/maxDms}}
-
     {{#hasOmittedFeatures}}
       ${heading(':warning:  Einige Features wurde weggelassen', HeadingLevel.Three)}
       Folgende Features sind dem Bot unbekannt und wurden daher weggelassen:

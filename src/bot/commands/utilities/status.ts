@@ -64,6 +64,7 @@ export default {
           broadcastSchedule: configuration.broadcastCronSchedule,
           lastModifiedBy: user.displayName,
           setupCommand: setupCommand.data.name,
+          broadcastsEnabled: !configuration.broadcastsDisabled,
         },
       });
     } catch (err) {
@@ -87,6 +88,7 @@ const replies = {
       ${bold('Setup Status')}:  ${inlineCode('{{#setupFinished}}DONE{{/setupFinished}}{{^setupFinished}}PENDING{{/setupFinished}}')}
       ${bold('Broadcast Channel')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NOT CONFIGURED{{/broadcastChannel}}')}
       ${bold('Broadcast Schedule')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NOT CONFIGURED{{/broadcastSchedule}}')}
+      ${bold('Broadcasts Enabled')}:  ${inlineCode('{{#broadcastsEnabled}}YES{{/broadcastsEnabled}}{{^broadcastsEnabled}}NO{{/broadcastsEnabled}}')}
       {{#lastModifiedBy}}
         ${subtext(`Configured by:  ${inlineCode('{{{lastModifiedBy}}}')}`)}
       {{/lastModifiedBy}}
@@ -106,6 +108,7 @@ const replies = {
       ${bold('Setup-Status')}:  ${inlineCode('{{#setupFinished}}ERLEDIGT{{/setupFinished}}{{^setupFinished}}AUSSTEHEND{{/setupFinished}}')}
       ${bold('Broadcast-Kanal')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NICHT KONFIGURIERT{{/broadcastChannel}}')}
       ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NICHT KONFIGURIERT{{/broadcastSchedule}}')}
+      ${bold('Broadcasts Aktiviert')}:  ${inlineCode('{{#broadcastsEnabled}}JA{{/broadcastsEnabled}}{{^broadcastsEnabled}}NEIN{{/broadcastsEnabled}}')}
       {{#lastModifiedBy}}
         ${subtext('Konfiguriert von')}:  ${inlineCode('{{{lastModifiedBy}}}')}
       {{/lastModifiedBy}}

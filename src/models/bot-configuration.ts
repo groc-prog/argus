@@ -24,9 +24,16 @@ const botConfigurationSchema = new mongoose.Schema(
     broadcastCronSchedule: {
       type: mongoose.SchemaTypes.String,
       trim: true,
-      index: true,
       required: true,
       default: process.env.DISCORD_BOT_BROADCAST_CRON,
+    },
+    /**
+     * Whether the bot should do scheduled broadcasts for the guild.
+     */
+    broadcastsDisabled: {
+      type: mongoose.SchemaTypes.Boolean,
+      required: true,
+      default: true,
     },
     /**
      * The unique ID of the discord user who modified the configuration last. Will initialize
