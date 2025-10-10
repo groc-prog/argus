@@ -102,7 +102,6 @@ const replies = {
         {{#keywords}}
           ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Title){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
         {{/keywords}}
-
         ${bold('Sent')}: ${inlineCode('{{#sentDms}}{{{sentDms}}}{{/sentDms}}{{^sentDms}}0{{/sentDms}}/{{#maxDms}}{{{maxDms}}}{{/maxDms}}{{^maxDms}}∞{{/maxDms}}')}
         ${bold('Last Sent')}: ${inlineCode('{{#lastSent}}{{{lastSent}}}{{/lastSent}}{{^lastSent}}Never{{/lastSent}}')}
         ${bold('Expires At')}: ${inlineCode('{{#expiresAt}}{{{expiresAt}}}{{/expiresAt}}{{^expiresAt}}Never{{/expiresAt}}')}
@@ -123,7 +122,6 @@ const replies = {
         {{#keywords}}
           ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Titel){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
         {{/keywords}}
-
         ${bold('Gesendet')}: ${inlineCode('{{#sentDms}}{{{sentDms}}}{{/sentDms}}{{^sentDms}}0{{/sentDms}}/{{#maxDms}}{{{maxDms}}}{{/maxDms}}{{^maxDms}}∞{{/maxDms}}')}
         ${bold('Zuletzt gesendet')}: ${inlineCode('{{#lastSent}}{{{lastSent}}}{{/lastSent}}{{^lastSent}}Nie{{/lastSent}}')}
         ${bold('Läuft ab am')}: ${inlineCode('{{#expiresAt}}{{{expiresAt}}}{{/expiresAt}}{{^expiresAt}}Nie{{/expiresAt}}')}

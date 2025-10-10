@@ -115,7 +115,16 @@ const notificationSchema = new mongoose.Schema(
       default: 'Europe/Vienna',
       enum: Intl.supportedValuesOf('timeZone'),
     },
-    entries: [notificationEntrySchema],
+    entries: {
+      type: [notificationEntrySchema],
+      validate: {
+        validator: (entries: mongoose.InferSchemaType<typeof notificationEntrySchema>[]) => {
+          const names = entries.map((entry) => entry.name);
+          return names.length === new Set(names).size;
+        },
+        message: 'Duplicate `name` values are not allowed in entries.',
+      },
+    },
   },
   {
     timestamps: true,
