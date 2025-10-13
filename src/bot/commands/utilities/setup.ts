@@ -18,6 +18,7 @@ import Fuse from 'fuse.js';
 import { Cron } from 'croner';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import { BotConfigurationModel, type BotConfiguration } from '../../../models/bot-configuration';
+import { client } from '../../client';
 
 export default {
   data: new SlashCommandBuilder()
@@ -37,6 +38,13 @@ export default {
           Locale.German,
           'Kanal in dem Film-Updates gepostet werden sollen.',
         )
+        .setAutocomplete(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName('timezone')
+        .setDescription('The timezone used for broadcasts')
+        .setDescriptionLocalization(Locale.German, 'Die Zeitzone, die bei Broadcasts benutzt wird')
         .setAutocomplete(true),
     )
     .addStringOption((option) =>
@@ -132,9 +140,20 @@ export default {
     }
 
     try {
+      const guildId = interaction.guild?.id;
+      if (!guildId) {
+        logger.error('Guild ID not defined in interaction');
+        throw new Error('Guild ID not defined');
+      }
+
+      const existingConfiguration = await BotConfigurationModel.findOne(
+        { guildId: guildId },
+        { broadcastCronSchedule: 1 },
+      );
+
       logger.info('Updating bot configuration with upsert');
       const updatedConfiguration = await BotConfigurationModel.findOneAndUpdate(
-        { guildId: interaction.guild?.id },
+        { guildId: guildId },
         {
           $set: {
             ...partialConfiguration,
@@ -147,6 +166,11 @@ export default {
         },
       );
       logger.info('Bot configuration successfully updated');
+      client.updateBroadcastJob(
+        guildId,
+        updatedConfiguration.broadcastCronSchedule,
+        existingConfiguration?.broadcastCronSchedule,
+      );
 
       const broadcastChannel = await updatedConfiguration.resolveBroadcastChannel();
       await replyFromTemplate(interaction, replies.success, {
@@ -156,6 +180,7 @@ export default {
           broadcastChannel: broadcastChannel?.name,
           broadcastSchedule: updatedConfiguration.broadcastCronSchedule,
           broadcastsEnabled: !updatedConfiguration.broadcastsDisabled,
+          timezone: updatedConfiguration.timezone,
         },
       });
     } catch (err) {
@@ -170,41 +195,70 @@ export default {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     const logger = getLoggerWithCtx(interaction);
+    const focusedOptionValue = interaction.options.getFocused(true);
 
-    try {
-      logger.info('Getting autocomplete options for broadcast channels');
-      const focusedOptionValue = interaction.options.getFocused();
+    switch (focusedOptionValue.name) {
+      case 'broadcast-channel':
+        try {
+          logger.info('Getting autocomplete options for broadcast channels');
 
-      const guildChannels = (await interaction.guild?.channels.fetch()) ?? new Collection();
-      const channelOptions = guildChannels
-        .filter(BotConfigurationModel.isValidBroadcastChannel)
-        .map((channel) => ({
-          // `null` values are already filtered out in `BotConfigurationModel.isValidBroadcastChannel` so
-          // we can safely assert the values as strings here
-          name: channel?.name as string,
-          value: channel?.id as string,
+          const guildChannels = (await interaction.guild?.channels.fetch()) ?? new Collection();
+          const channelOptions = guildChannels
+            .filter(BotConfigurationModel.isValidBroadcastChannel)
+            .map((channel) => ({
+              // `null` values are already filtered out in `BotConfigurationModel.isValidBroadcastChannel` so
+              // we can safely assert the values as strings here
+              name: channel?.name as string,
+              value: channel?.id as string,
+            }));
+
+          if (guildChannels.size === 0)
+            logger.info('No channels with sufficient permissions found');
+          else logger.info(`Found ${channelOptions.length} possible broadcast channels`);
+
+          if (focusedOptionValue.value.trim().length === 0) {
+            logger.debug('No input to filter yet, returning first 25 options');
+            await interaction.respond(channelOptions.slice(0, 25));
+            return;
+          }
+
+          logger.debug('Fuzzy searching available channel options');
+          const fuse = new Fuse(channelOptions, {
+            keys: ['name'],
+          });
+
+          const searchResult = fuse.search(focusedOptionValue.value);
+          const matchedOptions = searchResult.map((result) => result.item);
+          await interaction.respond(matchedOptions);
+        } catch (err) {
+          logger.error({ err }, 'Failed to get autocomplete options for broadcast channels');
+          await interaction.respond([]);
+        }
+        break;
+      case 'timezone':
+        logger.info('Getting autocomplete options for timezones');
+
+        const timezones = Intl.supportedValuesOf('timeZone').map((timezone) => ({
+          name: timezone,
+          value: timezone,
         }));
 
-      if (guildChannels.size === 0) logger.info('No channels with sufficient permissions found');
-      else logger.info(`Found ${channelOptions.length} possible broadcast channels`);
+        if (focusedOptionValue.value.trim().length === 0) {
+          logger.debug('No input to filter yet, returning first 25 options');
+          await interaction.respond(timezones.slice(0, 25));
+          return;
+        }
 
-      if (focusedOptionValue.trim().length === 0) {
-        logger.debug('No input to filter yet, returning first 25 options');
-        await interaction.respond(channelOptions.slice(0, 25));
-        return;
-      }
+        logger.debug('Fuzzy searching timezone options');
+        const fuse = new Fuse(timezones, {
+          keys: ['name'],
+        });
+        const matches = fuse.search(focusedOptionValue.value);
 
-      logger.debug('Fuzzy searching available channel options');
-      const fuse = new Fuse(channelOptions, {
-        keys: ['name'],
-      });
-
-      const searchResult = fuse.search(focusedOptionValue);
-      const matchedOptions = searchResult.map((result) => result.item);
-      await interaction.respond(matchedOptions);
-    } catch (err) {
-      logger.error({ err }, 'Failed to get autocomplete options for broadcast channels');
-      await interaction.respond([]);
+        await interaction.respond(matches.slice(0, 25).map((match) => match.item));
+        break;
+      default:
+        await interaction.respond([]);
     }
   },
 };
@@ -219,6 +273,7 @@ const replies = {
       ${bold('Broadcast Channel')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NOT CONFIGURED{{/broadcastChannel}}')}
       ${bold('Broadcast Schedule')}:  ${inlineCode('{{{broadcastSchedule}}}')}
       ${bold('Broadcasts Enabled')}:  ${inlineCode('{{#broadcastsEnabled}}YES{{/broadcastsEnabled}}{{^broadcastsEnabled}}NO{{/broadcastsEnabled}}')}
+      ${bold('Timezone')}:  ${inlineCode('{{{timezone}}}')}
 
       {{#setupFinished}}
         ${quote(italic('The stage is illuminated, the gears are aligned, and the show goes on without delay.'))}
@@ -235,6 +290,7 @@ const replies = {
       ${bold('Broadcast-Kanal')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NICHT KONFIGURIERT{{/broadcastChannel}}')}
       ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{{broadcastSchedule}}}')}
       ${bold('Broadcasts Aktiviert')}:  ${inlineCode('{{#broadcastsEnabled}}JA{{/broadcastsEnabled}}{{^broadcastsEnabled}}NEIN{{/broadcastsEnabled}}')}
+      ${bold('Zeitzone')}:  ${inlineCode('{{{timezone}}}')}
 
       {{#setupFinished}}
         ${quote(italic('Die Bühne ist erleuchtet, alle Zahnräder greifen ineinander, und die Show geht ohne Verzögerung weiter.'))}

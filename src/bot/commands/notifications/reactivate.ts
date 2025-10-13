@@ -157,30 +157,30 @@ export default {
       const notification = await NotificationModel.aggregate<{
         _id: Types.ObjectId;
         entries: { name: string; _id: Types.ObjectId }[];
-      }>([
-        { $match: { userId: interaction.user.id, 'entries.deactivatedAt': { $exists: true } } },
-        {
-          $project: {
-            entries: {
-              $map: {
-                input: {
-                  $filter: {
-                    input: '$entries',
-                    as: 'entry',
-                    cond: { $ne: [{ $ifNull: ['$$entry.deactivatedAt', false] }, false] },
-                  },
+      }>()
+        .match({
+          userId: interaction.user.id,
+          'entries.deactivatedAt': { $exists: true },
+        })
+        .project({
+          entries: {
+            $map: {
+              input: {
+                $filter: {
+                  input: '$entries',
+                  as: 'entry',
+                  cond: { $ne: [{ $ifNull: ['$$entry.deactivatedAt', false] }, false] },
                 },
-                as: 'entry',
-                in: {
-                  _id: '$$entry._id',
-                  name: '$$entry.name',
-                },
+              },
+              as: 'entry',
+              in: {
+                _id: '$$entry._id',
+                name: '$$entry.name',
               },
             },
           },
-        },
-        { $limit: 1 },
-      ]);
+        })
+        .limit(1);
 
       if (notification.length === 0) {
         logger.info('No deactivated notifications for user found');

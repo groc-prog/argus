@@ -257,8 +257,6 @@ const replies = {
         'Keep your notifications organized and relevant.',
         'Ensure that only the notifications you want continue to trigger.',
       ])}
-
-      ${quote(`Choose wisely — once removed, the notification vanishes like a phantom.`)}
     `,
     [Locale.German]: message`
       ${heading(':information_source:  BENACHRICHTIGUNG LÖSCHEN  :information_source:')}
@@ -273,8 +271,6 @@ const replies = {
         'Deine Benachrichtigungen organisiert und relevant zu halten.',
         'Sicherzustellen, dass nur die gewünschten Benachrichtigungen weiterhin ausgelöst werden.',
       ])}
-
-      ${quote(`Wähle weise — einmal entfernt, verschwindet die Benachrichtigung wie ein Phantom.`)}
     `,
   },
   [reactivateNotificationCommand.data.name]: {

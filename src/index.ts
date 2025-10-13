@@ -4,6 +4,7 @@ import utc from 'dayjs/plugin/utc.js';
 import mongoose from 'mongoose';
 import logger from './utilities/logger';
 import { initializeDiscordClient } from './bot/client';
+import WebScraperService from './services/web-scraper';
 
 dayjs.extend(timezone);
 dayjs.extend(utc);
@@ -29,5 +30,8 @@ mongoose.connection.on('error', (event) => {
 
 logger.info('Connecting to MongoDB');
 await mongoose.connect(uri);
+
+const scraperService = new WebScraperService();
+scraperService.start();
 
 await initializeDiscordClient();
