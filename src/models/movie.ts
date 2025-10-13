@@ -3,9 +3,7 @@ import logger from '../utilities/logger';
 import Fuse from 'fuse.js';
 
 const screeningSchema = new mongoose.Schema({
-  /**
-   * UTC timestamp of the start of the movie.
-   */
+  /** UTC timestamp of the start of the movie. */
   startTime: {
     type: mongoose.SchemaTypes.Date,
     required: true,
@@ -15,9 +13,7 @@ const screeningSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  /**
-   * Attribute keys describing features of the screening, for example 3d, atmos, etc
-   */
+  /** Attribute keys describing features of the screening, for example 3d, atmos, etc */
   features: [mongoose.SchemaTypes.String],
 });
 
@@ -49,6 +45,12 @@ const movieSchema = new mongoose.Schema(
   {
     timestamps: true,
     statics: {
+      /**
+       * Fuzzy searches movie names based on the provided search term. Fuzzy searching is done in
+       * memory and only returns the first 25 results.
+       * @param {string} search - The search term which the fuzzy search is based on.
+       * @returns
+       */
       fuzzySearchMovies: async (search: string): Promise<{ name: string; value: string }[]> => {
         const movies = await MovieModel.find({}, { title: 1, _id: 1 });
         const movieOptions = movies.map((movie) => ({

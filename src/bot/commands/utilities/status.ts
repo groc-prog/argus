@@ -65,6 +65,7 @@ export default {
           lastModifiedBy: user.displayName,
           setupCommand: setupCommand.data.name,
           broadcastsEnabled: !configuration.broadcastsDisabled,
+          timezone: configuration.timezone,
         },
       });
     } catch (err) {
@@ -89,6 +90,7 @@ const replies = {
       ${bold('Broadcast Channel')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NOT CONFIGURED{{/broadcastChannel}}')}
       ${bold('Broadcast Schedule')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NOT CONFIGURED{{/broadcastSchedule}}')}
       ${bold('Broadcasts Enabled')}:  ${inlineCode('{{#broadcastsEnabled}}YES{{/broadcastsEnabled}}{{^broadcastsEnabled}}NO{{/broadcastsEnabled}}')}
+      ${bold('Timezone')}:  ${inlineCode('{{{timezone}}}')}
       {{#lastModifiedBy}}
         ${subtext(`Configured by:  ${inlineCode('{{{lastModifiedBy}}}')}`)}
       {{/lastModifiedBy}}
@@ -109,6 +111,7 @@ const replies = {
       ${bold('Broadcast-Kanal')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NICHT KONFIGURIERT{{/broadcastChannel}}')}
       ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NICHT KONFIGURIERT{{/broadcastSchedule}}')}
       ${bold('Broadcasts Aktiviert')}:  ${inlineCode('{{#broadcastsEnabled}}JA{{/broadcastsEnabled}}{{^broadcastsEnabled}}NEIN{{/broadcastsEnabled}}')}
+      ${bold('Zeitzone')}:  ${inlineCode('{{{timezone}}}')}
       {{#lastModifiedBy}}
         ${subtext('Konfiguriert von')}:  ${inlineCode('{{{lastModifiedBy}}}')}
       {{/lastModifiedBy}}
@@ -130,6 +133,7 @@ const replies = {
       ${bold('Setup Status')}:  ${inlineCode('(no response)')}
       ${bold('Broadcast Channel')}:  ${inlineCode('(no response)')}
       ${bold('Broadcast Schedule')}:  ${inlineCode('(no response)')}
+      ${bold('Timezone')}:  ${inlineCode('(no response)')}
 
       ${quote(italic(`The lights went out, the show is over. The bot ran into a issue, please try again later.`))}
     `,
@@ -141,6 +145,7 @@ const replies = {
       ${bold('Setup-Status')}:  ${inlineCode('(keine Antwort)')}
       ${bold('Broadcast-Kanal')}:  ${inlineCode('(keine Antwort)')}
       ${bold('Broadcast-Zeitplan')}:  ${inlineCode('(keine Antwort)')}
+      ${bold('Zeitzone')}:  ${inlineCode('(keine Antwort)')}
 
       ${quote(italic(`Lichter aus, die Show ist vorbei. Der Bot hatte ein Problem, bitte versuche es später erneut.`))}
     `,

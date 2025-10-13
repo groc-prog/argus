@@ -7,17 +7,13 @@ export enum KeywordType {
 }
 
 const keywordSchema = new mongoose.Schema({
-  /**
-   * The type of keyword, from which the resulting fuzzy search is inferred.
-   */
+  /** The type of keyword, from which the resulting fuzzy search is inferred. */
   type: {
     type: mongoose.SchemaTypes.String,
     required: true,
     enum: Object.values(KeywordType),
   },
-  /**
-   * The value to try to match when fuzzy searching existing records.
-   */
+  /** The value to try to match when fuzzy searching existing records. */
   value: {
     type: mongoose.SchemaTypes.String,
     required: true,
@@ -61,26 +57,18 @@ const notificationEntrySchema = new mongoose.Schema(
       type: mongoose.SchemaTypes.Boolean,
       index: true,
     },
-    /**
-     * UTC timestamp of when the entry was deactivated.
-     */
+    /** UTC timestamp of when the entry was deactivated. */
     deactivatedAt: mongoose.SchemaTypes.Date,
-    /**
-     * The interval (in days) in which a DM is sent.
-     */
+    /** The interval (in days) in which a DM is sent. */
     dmDayInterval: {
       type: mongoose.SchemaTypes.Number,
       min: 0,
       default: 1,
       required: true,
     },
-    /**
-     * UTC timestamp of when the last DM was sent.
-     */
+    /** UTC timestamp of when the last DM was sent. */
     lastDmSentAt: mongoose.SchemaTypes.Date,
-    /**
-     * Date (12:00AM UTC) of when the entry should expire.
-     */
+    /** Date (12:00AM UTC) of when the entry should expire. */
     expiresAt: mongoose.SchemaTypes.Date,
     /**
      * The locale in which the DM will be. This value is not inferred by the users settings
@@ -100,9 +88,7 @@ const notificationEntrySchema = new mongoose.Schema(
 
 const notificationSchema = new mongoose.Schema(
   {
-    /**
-     * The unique ID of the user who will receive notifications.
-     */
+    /** The unique ID of the user who will receive notifications. */
     userId: {
       type: mongoose.SchemaTypes.String,
       required: true,

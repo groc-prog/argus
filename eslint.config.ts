@@ -29,6 +29,7 @@ export default defineConfig([
           allowNumber: true,
         },
       ],
+      'no-case-declarations': 'off',
     },
   },
 ]);

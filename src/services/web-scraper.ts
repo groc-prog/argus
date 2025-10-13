@@ -4,7 +4,7 @@ import logger from '../utilities/logger';
 import dayjs from 'dayjs';
 import { MovieModel, type Movie } from '../models/movie';
 
-export class WebScraperService {
+export default class WebScraperService {
   private cronSchedule = process.env.WEB_SCRAPER_SERVICE_CRON;
   private baseUrl = 'https://gleisdorf.dieselkino.at/programmuebersicht';
   private job: Cron | null = null;
@@ -15,7 +15,7 @@ export class WebScraperService {
 
   static jobName = 'web-scraper-service';
 
-  schedule(): void {
+  start(): void {
     if (!this.cronSchedule) {
       logger.warn(
         `No cron scheduler found in environment. ${this.constructor.name} will not be scheduled.`,
@@ -36,7 +36,7 @@ export class WebScraperService {
               job: executedJob.name,
               nextScheduleAt: nextSchedulesInMs ? dayjs().add(nextSchedulesInMs, 'ms') : 'unknown',
             },
-            'Job error during execution',
+            'Job error during web scraper execution',
           );
         },
       },
