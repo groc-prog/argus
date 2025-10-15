@@ -20,10 +20,20 @@ const logger = pino(
   }),
 );
 
+/**
+ * Attaches common context info from the interaction to a new child logger instance.
+ * @param {ChatInputCommandInteraction | AutocompleteInteraction} interaction - The interaction the
+ * context is taken from.
+ * @param {Record<string, unknown>} [ctx] - Optional context which should also be added to the
+ * logger.
+ * @returns {Logger} A new child logger with the attached context.
+ */
 export function getLoggerWithCtx(
   interaction: ChatInputCommandInteraction | AutocompleteInteraction,
+  ctx: Record<string, unknown> = {},
 ): Logger {
   return logger.child({
+    ...ctx,
     userId: interaction.user.id,
     guildId: interaction.guildId,
     command: interaction.commandName,

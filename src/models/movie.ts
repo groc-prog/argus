@@ -52,18 +52,22 @@ const movieSchema = new mongoose.Schema(
        * @returns
        */
       fuzzySearchMovies: async (search: string): Promise<{ name: string; value: string }[]> => {
+        const loggerWithCtx = logger.child({ model: MovieModel.constructor.name });
+
+        loggerWithCtx.info('Getting all movies for fuzzy search');
         const movies = await MovieModel.find({}, { title: 1, _id: 1 });
         const movieOptions = movies.map((movie) => ({
           name: movie.title,
           value: movie._id.toString(),
         }));
+        loggerWithCtx.debug(`Found ${movieOptions.length} movies`);
 
         if (search.trim().length === 0) {
-          logger.debug('No input to filter yet, returning first 25 options');
+          loggerWithCtx.debug('No input to filter yet, returning first 25 options');
           return movieOptions.slice(0, 25);
         }
 
-        logger.debug('Fuzzy searching available movie options');
+        loggerWithCtx.info('Fuzzy searching available movie options');
         const fuse = new Fuse(movieOptions, {
           keys: ['name'],
         });

@@ -8,7 +8,7 @@ export default {
   async execute(client: Client<true>) {
     logger.info(`Bot ${client.user.tag} ready to rumble`);
 
-    logger.info('Scheduling broadcast jobs');
+    logger.debug('Scheduling broadcast jobs');
     try {
       const groups = await BotConfigurationModel.getGroupedBroadcastSchedules();
 

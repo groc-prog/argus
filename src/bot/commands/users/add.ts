@@ -14,7 +14,7 @@ import {
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import dayjs from 'dayjs';
-import { KeywordType, NotificationModel } from '../../../models/notification';
+import { KeywordType, UserModel } from '../../../models/user';
 import { FEATURES } from '../../../models/features';
 
 export default {
@@ -104,7 +104,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     const name = interaction.options.getString('name', true);
     const maxDms = interaction.options.getNumber('max-dms');
@@ -119,14 +119,14 @@ export default {
     const features = interaction.options.getString('features');
     const featuresArr = features?.split(';').filter((feature) => feature.length !== 0);
 
+    loggerWithCtx.debug('Validating provided features');
     const omittedFeatures: string[] = [];
     const validFeatures =
       featuresArr
         ?.map((feature) => {
-          // Check if the feature is valid
           const match = Object.entries(FEATURES).find((mapping) => mapping[1].has(feature));
           if (!match) {
-            // Remember omitted features for later
+            // Remember omitted features so we can tell them to the user later on
             omittedFeatures.push(feature);
             return null;
           }
@@ -136,11 +136,12 @@ export default {
         .filter((feature) => feature !== null) ?? [];
 
     try {
-      const notification = await NotificationModel.findOneAndUpdate(
-        { userId: interaction.user.id },
+      loggerWithCtx.info('Getting user record or creating new one if none exist yet');
+      const user = await UserModel.findOneAndUpdate(
+        { discordId: interaction.user.id },
         {
           $set: {
-            userId: interaction.user.id,
+            discordId: interaction.user.id,
             timezone: 'Europe/Vienna',
           },
         },
@@ -153,7 +154,7 @@ export default {
       const expiresAtUtc = dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day');
 
       if ((!titlesArr || titlesArr.length === 0) && validFeatures.length === 0) {
-        logger.info('No keywords defined, aborting');
+        loggerWithCtx.info('No keywords defined, aborting');
         await replyFromTemplate(interaction, replies.titleFeaturesValidationError, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -163,11 +164,11 @@ export default {
       }
 
       if (expiresAt) {
-        logger.debug('Validating expiration date option');
+        loggerWithCtx.debug('Validating expiration date option');
         const isValidDate = expiresAtUtc.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
 
         if (!isValidDate) {
-          logger.info('Invalid expiration date received, aborting');
+          loggerWithCtx.info('Invalid expiration date received, aborting');
           await replyFromTemplate(interaction, replies.dateValidationError, {
             template: {
               date: expiresAt,
@@ -180,13 +181,13 @@ export default {
         }
       }
 
-      logger.info('Checking if notification with same name already exists');
-      const exists = await NotificationModel.findOne(
-        { userId: interaction.user.id, 'entries.name': name },
+      loggerWithCtx.info('Checking if notification with same name already exists');
+      const exists = await UserModel.findOne(
+        { discordId: interaction.user.id, 'entries.name': name },
         { _id: true },
       );
       if (exists) {
-        logger.info('Notification with the same name already exists');
+        loggerWithCtx.info('Notification with the same name already exists');
         await replyFromTemplate(interaction, replies.duplicateNotificationError, {
           template: {
             notificationName: name,
@@ -198,8 +199,8 @@ export default {
         return;
       }
 
-      logger.debug(
-        `Adding new notification with ${validFeatures.length + (titlesArr?.length ?? 0)}`,
+      loggerWithCtx.debug(
+        `Adding new notification with ${validFeatures.length + (titlesArr?.length ?? 0)} keywords`,
       );
       const notificationEntry = {
         name,
@@ -215,9 +216,9 @@ export default {
         ],
       };
 
-      notification.entries.push(notificationEntry);
-      await notification.save();
-      logger.info('Notification created successfully');
+      user.notifications.push(notificationEntry);
+      await user.save();
+      loggerWithCtx.info('Notification created successfully');
 
       await replyFromTemplate(interaction, replies.success, {
         template: {
@@ -233,7 +234,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error during notification creation');
+      loggerWithCtx.error({ err }, 'Error while creating new notification');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,

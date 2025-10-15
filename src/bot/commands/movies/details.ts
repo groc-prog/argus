@@ -35,12 +35,11 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
-
     const movieIdOrName = interaction.options.getString('movie', true);
+    const loggerWithCtx = getLoggerWithCtx(interaction, { movieIdOrName });
 
     try {
-      logger.info(`Getting details for movie ${movieIdOrName}`);
+      loggerWithCtx.info('Getting details for movie');
       const movie = await MovieModel.findOne(
         {
           $or: [
@@ -57,10 +56,7 @@ export default {
         },
       );
       if (!movie) {
-        logger.info(
-          { movieId: movieIdOrName },
-          'Provided autocomplete value did not match any movies',
-        );
+        loggerWithCtx.info('Provided input option did not match any movies');
         await replyFromTemplate(interaction, replies.movieNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -69,6 +65,7 @@ export default {
         return;
       }
 
+      loggerWithCtx.debug('Building template context');
       const templateData = {
         ...movie.toObject(),
         genres: movie.genres.join(', '),
@@ -82,7 +79,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error while validating broadcast channel');
+      loggerWithCtx.error({ err }, 'Error while getting movie details');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -92,16 +89,16 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     try {
-      logger.info('Getting autocomplete options for movies');
+      loggerWithCtx.info('Getting autocomplete options for movies');
       const focusedOptionValue = interaction.options.getFocused();
 
       const options = await MovieModel.fuzzySearchMovies(focusedOptionValue);
       await interaction.respond(options);
     } catch (err) {
-      logger.error({ err }, 'Failed to get autocomplete options for movies');
+      loggerWithCtx.error({ err }, 'Failed to get autocomplete options for movies');
       await interaction.respond([]);
     }
   },
