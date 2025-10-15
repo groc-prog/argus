@@ -10,7 +10,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
-import { NotificationModel, type Notification } from '../../../models/notification';
+import { UserModel, type User } from '../../../models/user';
 import { isValidObjectId, Types } from 'mongoose';
 import Fuse from 'fuse.js';
 import { message, replyFromTemplate } from '../../../utilities/reply';
@@ -50,15 +50,16 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
-
     const notificationEntryIdOrName = interaction.options.getString('notification', true);
     const expiresAt = interaction.options.getString('expiration-date');
+    const loggerWithCtx = getLoggerWithCtx(interaction, {
+      notificationIdOrName: notificationEntryIdOrName,
+    });
 
     try {
-      logger.info(`Getting notification ${notificationEntryIdOrName}`);
-      const notification = await NotificationModel.findOne({
-        userId: interaction.user.id,
+      loggerWithCtx.info('Getting notification');
+      const user = await UserModel.findOne({
+        discordId: interaction.user.id,
         $or: [
           {
             'entries._id': isValidObjectId(notificationEntryIdOrName)
@@ -69,13 +70,13 @@ export default {
         ],
       });
 
-      const isDeactivated = !!notification?.entries.find(
+      const isDeactivated = !!user?.notifications.find(
         (entry) =>
           entry._id.toString() === notificationEntryIdOrName ||
           entry.name === notificationEntryIdOrName,
       )?.deactivatedAt;
-      if (!notification || !isDeactivated) {
-        logger.info(`No notification matching ${notificationEntryIdOrName} found`);
+      if (!user || !isDeactivated) {
+        loggerWithCtx.info('No matching notification found');
         await replyFromTemplate(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -86,11 +87,11 @@ export default {
 
       const expiresAtUtc = dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day');
       if (expiresAt) {
-        logger.debug('Validating expiration date option');
+        loggerWithCtx.debug('Validating expiration date option');
         const isValidDate = expiresAtUtc.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
 
         if (!isValidDate) {
-          logger.info('Invalid expiration date received, aborting');
+          loggerWithCtx.info('Invalid expiration date received, aborting');
           await replyFromTemplate(interaction, replies.dateValidationError, {
             template: {
               date: expiresAt,
@@ -103,13 +104,13 @@ export default {
         }
       }
 
-      const entryIndex = notification.entries.findIndex(
+      const entryIndex = user.notifications.findIndex(
         (entry) =>
           entry._id.toString() === notificationEntryIdOrName ||
           entry.name === notificationEntryIdOrName,
       );
       if (entryIndex === -1) {
-        logger.info(`No notification matching ${notificationEntryIdOrName} found`);
+        loggerWithCtx.info('No matching notification found');
         await replyFromTemplate(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -118,17 +119,18 @@ export default {
         return;
       }
 
-      const entry = notification.entries[entryIndex] as Notification['entries'][number];
+      const entry = user.notifications[entryIndex] as User['notifications'][number];
 
       entry.sentDms = entry.maxDms ? 0 : undefined;
       entry.deactivatedAt = undefined;
       entry.lastDmSentAt = undefined;
       entry.expiresAt = expiresAt ? expiresAtUtc.toDate() : undefined;
 
-      notification.entries[entryIndex] = entry;
-      await notification.save();
+      user.notifications[entryIndex] = entry;
+      loggerWithCtx.info('Saving updated notification');
+      await user.save();
 
-      logger.info('Notification reactivated successfully');
+      loggerWithCtx.info('Notification reactivated successfully');
       await replyFromTemplate(interaction, replies.success, {
         template: {
           notificationName: entry.name,
@@ -138,7 +140,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error while deleting user notifications');
+      loggerWithCtx.error({ err }, 'Error while reactivating notification');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -148,13 +150,13 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     const focusedOptionValue = interaction.options.getFocused();
 
     try {
-      logger.info('Aggregating deactivated notification options for user');
-      const notification = await NotificationModel.aggregate<{
+      loggerWithCtx.info('Aggregating deactivated notification options');
+      const notification = await UserModel.aggregate<{
         _id: Types.ObjectId;
         entries: { name: string; _id: Types.ObjectId }[];
       }>()
@@ -183,7 +185,7 @@ export default {
         .limit(1);
 
       if (notification.length === 0) {
-        logger.info('No deactivated notifications for user found');
+        loggerWithCtx.info('No deactivated notifications found');
         await interaction.respond([]);
         return;
       }
@@ -195,12 +197,12 @@ export default {
         })) ?? [];
 
       if (focusedOptionValue.trim().length === 0) {
-        logger.debug('No input to filter yet, returning first 25 options');
+        loggerWithCtx.debug('No input to filter yet, returning first 25 options');
         await interaction.respond(notificationOptions.slice(0, 25));
         return;
       }
 
-      logger.debug('Fuzzy searching available deactivated notification options');
+      loggerWithCtx.debug('Fuzzy searching available deactivated notification options');
       const fuse = new Fuse(notificationOptions, {
         keys: ['name'],
       });
@@ -208,7 +210,10 @@ export default {
 
       await interaction.respond(matches.slice(0, 25).map((match) => match.item));
     } catch (err) {
-      logger.error({ err }, 'Failed to get autocomplete options for deactivated notifications');
+      loggerWithCtx.error(
+        { err },
+        'Failed to get autocomplete options for deactivated notifications',
+      );
       await interaction.respond([]);
     }
   },

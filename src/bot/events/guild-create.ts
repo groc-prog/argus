@@ -23,6 +23,7 @@ export default {
       }
 
       // Try to get a system channel by default
+      loggerWithCtx.debug('Checking for system channel with sufficient permissions');
       const systemChannel = await guild.systemChannel?.fetch();
       if (
         systemChannel &&

@@ -10,7 +10,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
-import { NotificationModel } from '../../../models/notification';
+import { UserModel } from '../../../models/user';
 import { message, replyFromTemplate } from '../../../utilities/reply';
 import Fuse from 'fuse.js';
 
@@ -29,7 +29,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     const timezone = interaction.options.getString('timezone', true);
 
@@ -37,18 +37,20 @@ export default {
       if (!Intl.supportedValuesOf('timeZone').includes(timezone))
         throw new Error('Invalid timezone provided');
 
-      logger.info('Updating user notification with new timezone');
-      await NotificationModel.findOneAndUpdate(
-        { userId: interaction.user.id },
+      loggerWithCtx.info(
+        'Updating user configuration with new timezone or creating new record if none exists',
+      );
+      await UserModel.findOneAndUpdate(
+        { discordId: interaction.user.id },
         {
           $set: {
-            userId: interaction.user.id,
+            discordId: interaction.user.id,
             timezone,
           },
         },
         { upsert: true },
       );
-      logger.info('Timezone updated successfully');
+      loggerWithCtx.info('Timezone updated successfully');
 
       await replyFromTemplate(interaction, replies.success, {
         template: {
@@ -59,7 +61,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error during timezone update');
+      loggerWithCtx.error({ err }, 'Error during timezone update');
       await replyFromTemplate(interaction, replies.error, {
         template: {
           timezone,

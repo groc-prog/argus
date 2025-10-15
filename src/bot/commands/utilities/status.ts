@@ -27,13 +27,13 @@ export default {
     .setContexts(InteractionContextType.Guild),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     try {
-      logger.info('Fetching bot configuration from database');
+      loggerWithCtx.info('Fetching bot configuration from database');
       const configuration = await BotConfigurationModel.findOne({ guildId: interaction.guildId });
       if (!configuration || !configuration.broadcastChannelId) {
-        logger.info('No bot configuration found for guild');
+        loggerWithCtx.info('No bot configuration found for guild');
         await replyFromTemplate(interaction, replies.success, {
           template: {
             latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
@@ -44,23 +44,13 @@ export default {
       }
 
       const broadcastChannel = await configuration.resolveBroadcastChannel();
-      if (!broadcastChannel) {
-        logger.debug('No broadcast channel defined for bot configuration yet');
-        await replyFromTemplate(interaction, replies.success, {
-          template: {
-            latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
-            setupCommand: setupCommand.data.name,
-          },
-        });
-        return;
-      }
-
       const user = await configuration.resolveLastModifiedUser();
+
       await replyFromTemplate(interaction, replies.success, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
           setupFinished: true,
-          broadcastChannel: broadcastChannel.name,
+          broadcastChannel: broadcastChannel?.name,
           broadcastSchedule: configuration.broadcastCronSchedule,
           lastModifiedBy: user.displayName,
           setupCommand: setupCommand.data.name,
@@ -69,7 +59,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error during command execution');
+      loggerWithCtx.error({ err }, 'Error during status check');
       await replyFromTemplate(interaction, replies.error, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),

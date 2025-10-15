@@ -10,7 +10,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { message, replyFromTemplate } from '../../../utilities/reply';
-import { NotificationModel } from '../../../models/notification';
+import { UserModel } from '../../../models/user';
 import { isValidObjectId, Types } from 'mongoose';
 import Fuse from 'fuse.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
@@ -37,15 +37,16 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
-
     const notificationEntryIdOrName = interaction.options.getString('notification', true);
+    const loggerWithCtx = getLoggerWithCtx(interaction, {
+      notificationIdOrName: notificationEntryIdOrName,
+    });
 
     try {
-      logger.info('Removing notification by ObjectId');
-      const result = await NotificationModel.findOneAndUpdate(
+      loggerWithCtx.info('Removing notification');
+      const user = await UserModel.findOneAndUpdate(
         {
-          userId: interaction.user.id,
+          discordId: interaction.user.id,
           $or: [
             {
               'entries._id': isValidObjectId(notificationEntryIdOrName)
@@ -57,7 +58,7 @@ export default {
         },
         {
           $pull: {
-            entries: {
+            notifications: {
               $or: [
                 {
                   _id: isValidObjectId(notificationEntryIdOrName)
@@ -72,8 +73,8 @@ export default {
         { new: false },
       );
 
-      if (!result) {
-        logger.info(`No notification matching ${notificationEntryIdOrName} found`);
+      if (!user) {
+        loggerWithCtx.info('No matching notification found');
         await replyFromTemplate(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -82,10 +83,10 @@ export default {
         return;
       }
 
-      logger.info('Notification removed successfully');
+      loggerWithCtx.info('Notification removed successfully');
       await replyFromTemplate(interaction, replies.success, {
         template: {
-          notificationName: result.entries.find(
+          notificationName: user.notifications.find(
             (entry) =>
               entry._id.toString() === notificationEntryIdOrName ||
               entry.name === notificationEntryIdOrName,
@@ -96,7 +97,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error while deleting user notifications');
+      loggerWithCtx.error({ err }, 'Error while deleting notification');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -106,35 +107,34 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const logger = getLoggerWithCtx(interaction);
-
+    const loggerWithCtx = getLoggerWithCtx(interaction);
     const focusedOptionValue = interaction.options.getFocused();
 
     try {
-      logger.info('Getting notification options for user');
-      const notification = await NotificationModel.findOne(
-        { userId: interaction.user.id },
+      loggerWithCtx.info('Getting autocomplete options for notifications');
+      const user = await UserModel.findOne(
+        { discordId: interaction.user.id },
         { 'entries._id': 1, 'entries.name': 1 },
       );
 
-      if (!notification) {
-        logger.info('No notifications for user found');
+      if (!user) {
+        loggerWithCtx.info('No notifications found');
         await interaction.respond([]);
         return;
       }
 
-      const notifications = notification.entries.map((entry) => ({
+      const notifications = user.notifications.map((entry) => ({
         name: entry.name,
         value: entry._id.toString(),
       }));
 
       if (focusedOptionValue.trim().length === 0) {
-        logger.debug('No input to filter yet, returning first 25 options');
+        loggerWithCtx.debug('No input to filter yet, returning first 25 options');
         await interaction.respond(notifications.slice(0, 25));
         return;
       }
 
-      logger.debug('Fuzzy searching available notification options');
+      loggerWithCtx.debug('Fuzzy searching available notification options');
       const fuse = new Fuse(notifications, {
         keys: ['name'],
       });
@@ -142,7 +142,7 @@ export default {
 
       await interaction.respond(matches.slice(0, 25).map((match) => match.item));
     } catch (err) {
-      logger.error({ err }, 'Failed to get autocomplete options for notifications');
+      loggerWithCtx.error({ err }, 'Error while getting autocomplete options for notifications');
       await interaction.respond([]);
     }
   },

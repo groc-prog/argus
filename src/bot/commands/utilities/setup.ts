@@ -76,19 +76,19 @@ export default {
     const broadcastsEnabled = interaction.options.getBoolean('broadcasts-enabled');
     const partialConfiguration: Partial<BotConfiguration> = {};
 
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     if (broadcastsEnabled !== null) partialConfiguration.broadcastsDisabled = !broadcastsEnabled;
 
     if (typeof broadcastScheduleCron === 'string') {
-      logger.debug('Validating configuration options');
+      loggerWithCtx.debug('Validating configuration options');
       try {
         const cron = new Cron(broadcastScheduleCron);
         cron.stop();
 
         partialConfiguration.broadcastCronSchedule = broadcastScheduleCron;
       } catch (err) {
-        logger.info({ err }, 'Invalid cron expression found, aborting');
+        loggerWithCtx.info({ err }, 'Invalid cron expression found, aborting');
         await replyFromTemplate(interaction, replies.cronValidationError, {
           template: {
             cronExpression: broadcastScheduleCron,
@@ -103,12 +103,12 @@ export default {
 
     if (broadcastChannelId) {
       try {
-        logger.debug({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
+        loggerWithCtx.debug({ channelId: broadcastChannelId }, 'Validating broadcast channel ID');
 
         const channel = await interaction.guild?.channels.fetch(broadcastChannelId);
         const isValidChannel = BotConfigurationModel.isValidBroadcastChannel(channel);
         if (!isValidChannel) {
-          logger.info(
+          loggerWithCtx.info(
             { channelId: broadcastChannelId },
             'Broadcast channel not found or bot is missing permission, aborting',
           );
@@ -126,7 +126,7 @@ export default {
 
         partialConfiguration.broadcastChannelId = broadcastChannelId;
       } catch (err) {
-        logger.error(
+        loggerWithCtx.error(
           { err, channelId: broadcastChannelId },
           'Error while validating broadcast channel',
         );
@@ -142,16 +142,17 @@ export default {
     try {
       const guildId = interaction.guild?.id;
       if (!guildId) {
-        logger.error('Guild ID not defined in interaction');
+        loggerWithCtx.error('Guild ID not defined in interaction');
         throw new Error('Guild ID not defined');
       }
 
+      loggerWithCtx.info({ guildId }, 'Getting bot configuration for guild ID');
       const existingConfiguration = await BotConfigurationModel.findOne(
         { guildId: guildId },
         { broadcastCronSchedule: 1 },
       );
 
-      logger.info('Updating bot configuration with upsert');
+      loggerWithCtx.info('Updating bot configuration with upsert');
       const updatedConfiguration = await BotConfigurationModel.findOneAndUpdate(
         { guildId: guildId },
         {
@@ -165,7 +166,7 @@ export default {
           new: true,
         },
       );
-      logger.info('Bot configuration successfully updated');
+      loggerWithCtx.info('Bot configuration successfully updated');
       client.updateBroadcastJob(
         guildId,
         updatedConfiguration.broadcastCronSchedule,
@@ -184,7 +185,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error during configuration update');
+      loggerWithCtx.error({ err }, 'Error during configuration update');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -194,13 +195,13 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
     const focusedOptionValue = interaction.options.getFocused(true);
 
     switch (focusedOptionValue.name) {
       case 'broadcast-channel':
         try {
-          logger.info('Getting autocomplete options for broadcast channels');
+          loggerWithCtx.info('Getting autocomplete options for broadcast channels');
 
           const guildChannels = (await interaction.guild?.channels.fetch()) ?? new Collection();
           const channelOptions = guildChannels
@@ -213,30 +214,29 @@ export default {
             }));
 
           if (guildChannels.size === 0)
-            logger.info('No channels with sufficient permissions found');
-          else logger.info(`Found ${channelOptions.length} possible broadcast channels`);
+            loggerWithCtx.debug('No channels with sufficient permissions found');
+          else loggerWithCtx.debug(`Found ${channelOptions.length} possible broadcast channels`);
 
           if (focusedOptionValue.value.trim().length === 0) {
-            logger.debug('No input to filter yet, returning first 25 options');
+            loggerWithCtx.debug('No input to filter yet, returning first 25 options');
             await interaction.respond(channelOptions.slice(0, 25));
             return;
           }
 
-          logger.debug('Fuzzy searching available channel options');
+          loggerWithCtx.debug('Fuzzy searching available channel options');
           const fuse = new Fuse(channelOptions, {
             keys: ['name'],
           });
-
           const searchResult = fuse.search(focusedOptionValue.value);
           const matchedOptions = searchResult.map((result) => result.item);
           await interaction.respond(matchedOptions);
         } catch (err) {
-          logger.error({ err }, 'Failed to get autocomplete options for broadcast channels');
+          loggerWithCtx.error({ err }, 'Failed to get autocomplete options for broadcast channels');
           await interaction.respond([]);
         }
         break;
       case 'timezone':
-        logger.info('Getting autocomplete options for timezones');
+        loggerWithCtx.info('Getting autocomplete options for timezones');
 
         const timezones = Intl.supportedValuesOf('timeZone').map((timezone) => ({
           name: timezone,
@@ -244,12 +244,12 @@ export default {
         }));
 
         if (focusedOptionValue.value.trim().length === 0) {
-          logger.debug('No input to filter yet, returning first 25 options');
+          loggerWithCtx.debug('No input to filter yet, returning first 25 options');
           await interaction.respond(timezones.slice(0, 25));
           return;
         }
 
-        logger.debug('Fuzzy searching timezone options');
+        loggerWithCtx.debug('Fuzzy searching timezone options');
         const fuse = new Fuse(timezones, {
           keys: ['name'],
         });

@@ -20,7 +20,7 @@ const keywordSchema = new mongoose.Schema({
   },
 });
 
-const notificationEntrySchema = new mongoose.Schema(
+const notificationSchema = new mongoose.Schema(
   {
     name: {
       type: mongoose.SchemaTypes.String,
@@ -86,10 +86,10 @@ const notificationEntrySchema = new mongoose.Schema(
   },
 );
 
-const notificationSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
-    /** The unique ID of the user who will receive notifications. */
-    userId: {
+    /** The unique Discord ID of the user who will receive notifications. */
+    discordId: {
       type: mongoose.SchemaTypes.String,
       required: true,
       unique: true,
@@ -101,14 +101,14 @@ const notificationSchema = new mongoose.Schema(
       default: 'Europe/Vienna',
       enum: Intl.supportedValuesOf('timeZone'),
     },
-    entries: {
-      type: [notificationEntrySchema],
+    notifications: {
+      type: [notificationSchema],
       validate: {
-        validator: (entries: mongoose.InferSchemaType<typeof notificationEntrySchema>[]) => {
+        validator: (entries: mongoose.InferSchemaType<typeof notificationSchema>[]) => {
           const names = entries.map((entry) => entry.name);
           return names.length === new Set(names).size;
         },
-        message: 'Duplicate `name` values are not allowed in entries.',
+        message: 'Duplicate `name` values are not allowed in notifications.',
       },
     },
   },
@@ -117,5 +117,5 @@ const notificationSchema = new mongoose.Schema(
   },
 );
 
-export type Notification = mongoose.InferSchemaType<typeof notificationSchema>;
-export const NotificationModel = mongoose.model('Notification', notificationSchema);
+export type User = mongoose.InferSchemaType<typeof userSchema>;
+export const UserModel = mongoose.model('Notification', userSchema);

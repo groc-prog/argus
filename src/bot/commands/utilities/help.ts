@@ -16,11 +16,11 @@ import {
 import { client } from '../../client';
 import statusCommand from '../utilities/status';
 import setupCommand from '../utilities/setup';
-import addNotificationCommand from '../notifications/add';
-import listNotificationCommand from '../notifications/notifications';
-import deleteNotificationCommand from '../notifications/delete';
-import setTimezoneCommand from '../notifications/set-timezone';
-import reactivateNotificationCommand from '../notifications/reactivate';
+import addNotificationCommand from '../users/add';
+import listNotificationCommand from '../users/notifications';
+import deleteNotificationCommand from '../users/delete';
+import setTimezoneCommand from '../users/set-timezone';
+import reactivateNotificationCommand from '../users/reactivate';
 import movieFeaturesCommand from '../movies/features';
 import movieDetailsCommand from '../movies/details';
 import movieScreeningsCommand from '../movies/screenings';

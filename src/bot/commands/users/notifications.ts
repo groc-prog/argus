@@ -13,7 +13,7 @@ import {
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { message, replyFromTemplate } from '../../../utilities/reply';
-import { KeywordType, NotificationModel } from '../../../models/notification';
+import { KeywordType, UserModel } from '../../../models/user';
 import dayjs from 'dayjs';
 
 export default {
@@ -23,12 +23,12 @@ export default {
     .setDescriptionLocalization(Locale.German, 'Eine Liste aller Benachrichtigungen.'),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     try {
-      logger.info('Fetching user notifications');
-      const notification = await NotificationModel.findOne(
-        { userId: interaction.user.id },
+      loggerWithCtx.info('Getting notifications');
+      const user = await UserModel.findOne(
+        { discordId: interaction.user.id },
         {
           'entries.name': 1,
           'entries.keywords': 1,
@@ -41,8 +41,8 @@ export default {
         },
       );
 
-      if (!notification) {
-        logger.info('No notifications found for user');
+      if (!user) {
+        loggerWithCtx.info('No notifications found for user');
         await replyFromTemplate(interaction, replies.noNotifications, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -51,8 +51,10 @@ export default {
         return;
       }
 
-      logger.debug(`Found ${notification.entries.length} notifications`);
-      const templateData = notification.entries.map((entry) => ({
+      loggerWithCtx.debug(
+        `Found ${user.notifications.length} notifications, preparing template data`,
+      );
+      const templateData = user.notifications.map((entry) => ({
         name: entry.name,
         sentDms: entry.sentDms ?? 0,
         maxDms: entry.maxDms,
@@ -79,7 +81,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error while fetching user notifications');
+      loggerWithCtx.error({ err }, 'Error while getting notifications');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,

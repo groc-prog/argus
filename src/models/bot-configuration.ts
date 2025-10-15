@@ -75,7 +75,12 @@ const botConfigurationSchema = new mongoose.Schema(
         channelId: string,
         botId: string,
       ): Promise<void> => {
-        logger.info({ guildId }, 'Creating new default bot configuration');
+        const loggerWithCtx = logger.child({
+          guildId,
+          model: BotConfigurationModel.constructor.name,
+        });
+
+        loggerWithCtx.info('Creating new default bot configuration');
         const defaultConfiguration = new BotConfigurationModel({
           guildId,
           broadcastChannelId: channelId,
@@ -84,10 +89,7 @@ const botConfigurationSchema = new mongoose.Schema(
         });
 
         await defaultConfiguration.save();
-        logger.info(
-          { guildId, configurationId: defaultConfiguration.id as string },
-          'Default bot configuration created',
-        );
+        loggerWithCtx.info(`Default bot configuration ${defaultConfiguration.id} created`);
       },
       /**
        * Checks if the provided channel is a valid channel to be set as the broadcasting channel.
@@ -112,7 +114,10 @@ const botConfigurationSchema = new mongoose.Schema(
       getGroupedBroadcastSchedules: async (): Promise<
         { cron: string; guildIds: Set<string> }[]
       > => {
-        logger.info('Aggregating guild IDs grouped by cron schedule');
+        logger.info(
+          { model: BotConfigurationModel.constructor.name },
+          'Aggregating guild IDs grouped by cron schedule',
+        );
         const aggregated = await BotConfigurationModel.aggregate<{
           _id: string;
           guildIds: string[];
@@ -141,9 +146,10 @@ const botConfigurationSchema = new mongoose.Schema(
         const loggerWithCtx = logger.child({
           guildId: this.guildId,
           channelId: this.broadcastChannelId,
+          model: BotConfigurationModel.constructor.name,
         });
 
-        loggerWithCtx.info('Resolving configured broadcast channel');
+        loggerWithCtx.info('Resolving configured broadcast channel from guild configuration');
         if (!client.isReady()) throw new Error('Client not initialized yet');
         if (!this.broadcastChannelId) {
           loggerWithCtx.debug('No broadcast channel configured');
@@ -195,9 +201,12 @@ const botConfigurationSchema = new mongoose.Schema(
        * @returns The resolved guild or `null` if the guild is not found.
        */
       async resolveGuild() {
-        const loggerWithCtx = logger.child({ guildId: this.guildId });
+        const loggerWithCtx = logger.child({
+          guildId: this.guildId,
+          model: BotConfigurationModel.constructor.name,
+        });
 
-        loggerWithCtx.info('Resolving guild with ID from configuration');
+        loggerWithCtx.info('Resolving guild from configuration');
         if (!client.isReady()) throw new Error('Client not initialized yet');
 
         try {
@@ -226,6 +235,7 @@ const botConfigurationSchema = new mongoose.Schema(
         const loggerWithCtx = logger.child({
           guildId: this.guildId,
           userId: this.lastModifiedBy,
+          model: BotConfigurationModel.constructor.name,
         });
 
         loggerWithCtx.info('Resolving user who last modified configuration');

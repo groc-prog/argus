@@ -11,15 +11,13 @@ export default {
     const command = client.commands.get(interaction.commandName);
     if (!command || !command.autocomplete) return;
 
+    const loggerWithCtx = logger.child({ command: command.data.name });
     try {
-      logger.info({ command: command.data.name }, `Received autocomplete interaction`);
+      loggerWithCtx.info('Received autocomplete interaction');
       await command.autocomplete(interaction);
-      logger.info({ command: command.data.name }, `Autocomplete interaction finished`);
+      loggerWithCtx.info('Autocomplete interaction finished');
     } catch (err) {
-      logger.error(
-        { err, command: command.data.name },
-        'Unhandled error during autocomplete interaction handling',
-      );
+      loggerWithCtx.error({ err }, 'Unhandled error during autocomplete interaction');
     }
   },
 };

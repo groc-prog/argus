@@ -28,7 +28,7 @@ export const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Map();
 
 client.scheduleBroadcastJob = (cronSchedule: string, guildIds: Set<string>): void => {
-  const loggerWithCtx = logger.child({ pattern: cronSchedule, jobType: 'broadcast' });
+  const loggerWithCtx = logger.child({ pattern: cronSchedule, jobType: JobType.Broadcast });
 
   const existingJob = scheduledJobs.find(
     (job) =>
@@ -36,7 +36,7 @@ client.scheduleBroadcastJob = (cronSchedule: string, guildIds: Set<string>): voi
       (job.options.context as JobContext | undefined)?.type === JobType.Broadcast,
   );
   if (existingJob) {
-    loggerWithCtx.warn('Broadcast job with same pattern already registered');
+    loggerWithCtx.warn('Broadcast job with same pattern already registered, skipping');
     return;
   }
 
@@ -78,12 +78,17 @@ client.scheduleBroadcastJob = (cronSchedule: string, guildIds: Set<string>): voi
   logger.info({ pattern: cronSchedule }, 'New broadcast job scheduled');
 };
 
-client.updateBroadcastJob = function updateBroadcastJob(
+client.updateBroadcastJob = (
   guildId: string,
   newCronSchedule: string,
   oldCronSchedule?: string,
-): void {
-  const loggerWithCtx = logger.child({ guildId, newCronSchedule, oldCronSchedule });
+): void => {
+  const loggerWithCtx = logger.child({
+    guildId,
+    newCronSchedule,
+    oldCronSchedule,
+    jobType: JobType.Broadcast,
+  });
 
   loggerWithCtx.debug('Checking for job with old cron pattern');
   const oldJob = scheduledJobs.find(
@@ -123,69 +128,9 @@ client.updateBroadcastJob = function updateBroadcastJob(
       (newJob.options.context as BroadcastJobContext).updatedGuildIds = currentGuildIds;
     }
   } else {
-    this.scheduleBroadcastJob(newCronSchedule, new Set([guildId]));
+    client.scheduleBroadcastJob(newCronSchedule, new Set([guildId]));
   }
 };
-
-export async function initializeDiscordClient(): Promise<void> {
-  if (!process.env.DISCORD_BOT_TOKEN) {
-    logger.fatal('No bot token found in environment');
-    process.exit(1);
-  }
-
-  if (!process.env.DISCORD_CLIENT_ID) {
-    logger.fatal('No client ID found in environment');
-    process.exit(1);
-  }
-
-  if (!process.env.DISCORD_BOT_BROADCAST_CRON) {
-    logger.fatal('No default broadcast cron schedule found in environment');
-    process.exit(1);
-  }
-
-  if (!process.env.DISCORD_BOT_DM_CRON) {
-    logger.fatal('No default DM cron schedule found in environment');
-    process.exit(1);
-  }
-
-  try {
-    await registerCommandsFromDirectory();
-    await registerEventsFromDirectory();
-
-    const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
-    const commands = client.commands.values().toArray();
-
-    if (process.env.NODE_ENV === 'development') {
-      if (!process.env.DISCORD_TEST_GUILD_ID) {
-        logger.fatal('Running in development mode, but did not find test guild ID in environment');
-        process.exit(1);
-      }
-
-      logger.warn(
-        `Refreshing ${client.commands.size} (/) commands in test guild ${process.env.DISCORD_TEST_GUILD_ID}`,
-      );
-      await rest.put(
-        Routes.applicationGuildCommands(
-          process.env.DISCORD_CLIENT_ID,
-          process.env.DISCORD_TEST_GUILD_ID,
-        ),
-        { body: commands.map((command) => command.data.toJSON()) },
-      );
-    } else {
-      logger.info(`Refreshing ${client.commands.size} global (/) commands`);
-      await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), {
-        body: commands.map((command) => command.data.toJSON()),
-      });
-    }
-    logger.info(`Refreshed ${client.commands.size} (/) commands`);
-
-    logger.info('Logging in with bot token');
-    await client.login(process.env.DISCORD_BOT_TOKEN);
-  } catch (err) {
-    logger.error({ err }, 'Error during Discord client initialization');
-    process.exit(1);
-  }
-}
 
 async function registerCommandsFromDirectory(): Promise<void> {
   const commandFoldersPath = path.join(import.meta.dirname, 'commands');
@@ -254,7 +199,10 @@ async function registerEventsFromDirectory(): Promise<void> {
 }
 
 async function executeBroadcastJob(guildIds: Set<string>): Promise<void> {
-  const loggerWithJobCtx = logger.child({ guildIds: Array.from(guildIds) });
+  const loggerWithJobCtx = logger.child({
+    guildIds: Array.from(guildIds),
+    jobType: JobType.Broadcast,
+  });
 
   try {
     loggerWithJobCtx.info('Getting movies for broadcast messages');
@@ -341,6 +289,66 @@ async function executeBroadcastJob(guildIds: Set<string>): Promise<void> {
     }
   } catch (err) {
     loggerWithJobCtx.error({ err }, 'Failed to execute broadcast job');
+  }
+}
+
+export async function initializeDiscordClient(): Promise<void> {
+  if (!process.env.DISCORD_BOT_TOKEN) {
+    logger.fatal('No bot token found in environment');
+    process.exit(1);
+  }
+
+  if (!process.env.DISCORD_CLIENT_ID) {
+    logger.fatal('No client ID found in environment');
+    process.exit(1);
+  }
+
+  if (!process.env.DISCORD_BOT_BROADCAST_CRON) {
+    logger.fatal('No default broadcast cron schedule found in environment');
+    process.exit(1);
+  }
+
+  if (!process.env.DISCORD_BOT_DM_CRON) {
+    logger.fatal('No default DM cron schedule found in environment');
+    process.exit(1);
+  }
+
+  try {
+    await registerCommandsFromDirectory();
+    await registerEventsFromDirectory();
+
+    const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
+    const commands = client.commands.values().toArray();
+
+    if (process.env.NODE_ENV === 'development') {
+      if (!process.env.DISCORD_TEST_GUILD_ID) {
+        logger.fatal('Running in development mode, but did not find test guild ID in environment');
+        process.exit(1);
+      }
+
+      logger.warn(
+        `Refreshing ${client.commands.size} (/) commands in test guild ${process.env.DISCORD_TEST_GUILD_ID}`,
+      );
+      await rest.put(
+        Routes.applicationGuildCommands(
+          process.env.DISCORD_CLIENT_ID,
+          process.env.DISCORD_TEST_GUILD_ID,
+        ),
+        { body: commands.map((command) => command.data.toJSON()) },
+      );
+    } else {
+      logger.info(`Refreshing ${client.commands.size} global (/) commands`);
+      await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), {
+        body: commands.map((command) => command.data.toJSON()),
+      });
+    }
+    logger.info(`Refreshed ${client.commands.size} (/) commands`);
+
+    logger.info('Logging in with bot token');
+    await client.login(process.env.DISCORD_BOT_TOKEN);
+  } catch (err) {
+    logger.error({ err }, 'Error during Discord client initialization');
+    process.exit(1);
   }
 }
 

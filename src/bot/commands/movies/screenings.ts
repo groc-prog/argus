@@ -16,7 +16,7 @@ import { getLoggerWithCtx } from '../../../utilities/logger';
 import { MovieModel } from '../../../models/movie';
 import { isValidObjectId } from 'mongoose';
 import { I18N } from '../../../models/features';
-import { NotificationModel } from '../../../models/notification';
+import { UserModel } from '../../../models/user';
 import dayjs from 'dayjs';
 
 export default {
@@ -41,12 +41,11 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const logger = getLoggerWithCtx(interaction);
-
     const movieIdOrName = interaction.options.getString('movie', true);
+    const loggerWithCtx = getLoggerWithCtx(interaction, { movieIdOrName });
 
     try {
-      logger.info(`Getting details for movie ${movieIdOrName}`);
+      loggerWithCtx.info('Getting details for movie');
       const movie = await MovieModel.findOne(
         {
           $or: [
@@ -60,9 +59,9 @@ export default {
         },
       );
       if (!movie) {
-        logger.info(
+        loggerWithCtx.info(
           { movieId: movieIdOrName },
-          'Provided autocomplete value did not match any movies',
+          'Provided input option did not match any movies',
         );
         await replyFromTemplate(interaction, replies.movieNotFound, {
           interaction: {
@@ -72,13 +71,17 @@ export default {
         return;
       }
 
-      logger.info('Getting user timezone');
-      const userNotification = await NotificationModel.findOne(
-        { userId: interaction.user.id },
+      loggerWithCtx.info('Getting user timezone');
+      const userNotification = await UserModel.findOne(
+        { discordId: interaction.user.id },
         { timezone: 1 },
       );
+
+      if (!userNotification)
+        loggerWithCtx.info('No user configuration found, falling back to default timezone');
       const timezone = userNotification?.timezone ?? 'Europe/Vienna';
 
+      loggerWithCtx.debug('Building template context');
       const screenings = movie.screenings.map((screening) => ({
         auditorium: screening.auditorium,
         features: screening.features
@@ -106,7 +109,7 @@ export default {
         },
       });
     } catch (err) {
-      logger.error({ err }, 'Error while validating broadcast channel');
+      loggerWithCtx.error({ err }, 'Error while getting movie screenings');
       await replyFromTemplate(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
@@ -116,16 +119,16 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     try {
-      logger.info('Getting autocomplete options for movies');
+      loggerWithCtx.info('Getting autocomplete options for movies');
       const focusedOptionValue = interaction.options.getFocused();
 
       const options = await MovieModel.fuzzySearchMovies(focusedOptionValue);
       await interaction.respond(options);
     } catch (err) {
-      logger.error({ err }, 'Failed to get autocomplete options for movies');
+      loggerWithCtx.error({ err }, 'Failed to get autocomplete options for movies');
       await interaction.respond([]);
     }
   },
