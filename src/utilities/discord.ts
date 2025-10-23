@@ -15,7 +15,7 @@ interface ReplyContext {
  * @param {unknown[]} values - The values used in the template string.
  * @returns {string} The de-dented template string.
  */
-export const message = (strings: TemplateStringsArray, ...values: unknown[]): string =>
+export const discordMessage = (strings: TemplateStringsArray, ...values: unknown[]): string =>
   strings
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
     .reduce((prev, curr, index) => `${prev}${values[index - 1] || ''}${curr}`, '')
@@ -32,7 +32,7 @@ export const message = (strings: TemplateStringsArray, ...values: unknown[]): st
  * @param {ReplyContext} ctx - Optional context for both template and reply.
  * @throws {Error} If the interaction does not provide a `reply` method.
  */
-export async function replyFromTemplate(
+export async function sendInteractionReply(
   interaction: Interaction,
   replies: I18nMessages,
   ctx: ReplyContext = {},

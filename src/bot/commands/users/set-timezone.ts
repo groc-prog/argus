@@ -11,7 +11,7 @@ import {
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { UserModel } from '../../../models/user';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import Fuse from 'fuse.js';
 
 export default {
@@ -52,7 +52,7 @@ export default {
       );
       loggerWithCtx.info('Timezone updated successfully');
 
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           timezone,
         },
@@ -62,7 +62,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error during timezone update');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         template: {
           timezone,
         },
@@ -100,7 +100,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':hourglass:  TIMEZONE UPDATED  :hourglass:')}
       In a world where timing is everything… the clock now beats in harmony.
 
@@ -108,7 +108,7 @@ const replies = {
 
       ${quote(italic(`The stage lights shift, the cues align — the show will go on at the right time.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':hourglass:  ZEITZONE AKTUALISIERT  :hourglass:')}
       In einer Welt, in der Timing alles ist… schlägt die Uhr nun im Einklang.
 
@@ -118,7 +118,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  TIMEZONE UPDATE FAILED  :x:')}
       In a world where timing is everything… the clock refuses to be tamed.
 
@@ -126,7 +126,7 @@ const replies = {
 
       ${quote(italic(`The show cannot sync without the correct time. Please verify the timezone and try again later.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FEHLGESCHLAGENE ZEITZONENAKTUALISIERUNG  :x:')}
       In einer Welt, in der Timing alles ist… weigert sich die Uhr gezähmt zu werden.
 

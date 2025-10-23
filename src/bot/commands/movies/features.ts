@@ -9,7 +9,7 @@ import {
   SlashCommandBuilder,
   unorderedList,
 } from 'discord.js';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { I18N } from '../../../models/features';
 
 export default {
@@ -26,7 +26,7 @@ export default {
       .map((feature) => feature[interaction.locale])
       .filter((featureI18n) => featureI18n !== undefined);
 
-    await replyFromTemplate(interaction, replies.success, {
+    await sendInteractionReply(interaction, replies.success, {
       template: {
         features: Array.from(new Set(features)),
       },
@@ -39,7 +39,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':sparkles:  KNOWN FEATURES  :sparkles:')}
       In a world where every movie shines for a reason… these are the traits that define them.
 
@@ -49,7 +49,7 @@ const replies = {
 
       ${quote(italic(`Each feature tells its own story — combine them wisely to craft your perfect notifications.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':sparkles:  BEKANNTE FEATURES  :sparkles:')}
       In einer Welt, in der jeder Film aus einem besonderen Grund leuchtet… sind dies die Merkmale, die ihn definieren.
 

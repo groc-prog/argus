@@ -16,9 +16,9 @@ import {
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import Fuse from 'fuse.js';
 import { Cron } from 'croner';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { BotConfigurationModel, type BotConfiguration } from '../../../models/bot-configuration';
-import { client } from '../../client';
+import MessagingService from '../../../services/messaging';
 
 export default {
   data: new SlashCommandBuilder()
@@ -89,7 +89,7 @@ export default {
         partialConfiguration.broadcastCronSchedule = broadcastScheduleCron;
       } catch (err) {
         loggerWithCtx.info({ err }, 'Invalid cron expression found, aborting');
-        await replyFromTemplate(interaction, replies.cronValidationError, {
+        await sendInteractionReply(interaction, replies.cronValidationError, {
           template: {
             cronExpression: broadcastScheduleCron,
           },
@@ -112,7 +112,7 @@ export default {
             { channelId: broadcastChannelId },
             'Broadcast channel not found or bot is missing permission, aborting',
           );
-          await replyFromTemplate(interaction, replies.channelValidationError, {
+          await sendInteractionReply(interaction, replies.channelValidationError, {
             template: {
               channelName: channel?.name,
               missingPermissions: !isValidChannel,
@@ -130,7 +130,7 @@ export default {
           { err, channelId: broadcastChannelId },
           'Error while validating broadcast channel',
         );
-        await replyFromTemplate(interaction, replies.channelValidationError, {
+        await sendInteractionReply(interaction, replies.channelValidationError, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -167,14 +167,16 @@ export default {
         },
       );
       loggerWithCtx.info('Bot configuration successfully updated');
-      client.updateBroadcastJob(
+
+      const messagingService = MessagingService.getInstance();
+      messagingService.updateGuildJob(
         guildId,
         updatedConfiguration.broadcastCronSchedule,
         existingConfiguration?.broadcastCronSchedule,
       );
 
       const broadcastChannel = await updatedConfiguration.resolveBroadcastChannel();
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           setupFinished: !!updatedConfiguration.broadcastChannelId,
           setupCommand: interaction.commandName,
@@ -186,7 +188,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error during configuration update');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -265,7 +267,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':loudspeaker:  SYSTEM STATUS REPORT  :loudspeaker:')}
       In a realm where every action matters… the bot triumphs once more.
 
@@ -282,7 +284,7 @@ const replies = {
         ${quote(italic(`The stage is dark. Configure the bot with ${inlineCode('/{{{setupCommand}}}')} to bring the show to life.`))}
       {{/setupFinished}}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':loudspeaker:  SYSTEMSTATUSBERICHT  :loudspeaker:')}
       In einem Reich, in dem jede Handlung zählt… triumphiert der Bot erneut.
 
@@ -301,7 +303,7 @@ const replies = {
     `,
   },
   cronValidationError: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':bangbang:  SYSTEM ALERT  :bangbang:')}
       In a world where everything seems ready… fate intervenes.
 
@@ -309,7 +311,7 @@ const replies = {
 
       ${quote(italic(`The bot is prepared, yet the universe conspires.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':bangbang:  SYSTEMALARM  :bangbang:')}
       In einer Welt, in der alles bereit scheint… greift das Schicksal ein.
 
@@ -319,7 +321,7 @@ const replies = {
     `,
   },
   channelValidationError: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':no_entry:  CHANNEL ACCESS ERROR  :no_entry:')}
       In a world where all paths should be clear… barriers arise.
 
@@ -327,7 +329,7 @@ const replies = {
 
       ${quote(italic(`The stage is set, yet the doors remain closed. Only once the path is clear can the show continue.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':no_entry:  KANALZUGRIFFSFEHLER  :no_entry:')}
       In einer Welt, in der alle Wege frei sein sollten… tauchen Hindernisse auf.
 
@@ -337,7 +339,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  UNEXPECTED ERROR  :x:')}
       In a world where plans unfold perfectly… chaos strikes unexpectedly.
 
@@ -345,7 +347,7 @@ const replies = {
 
       ${quote(italic(`The show cannot continue at the moment. Please try again later.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  UNERWARTETER FEHLER  :x:')}
       In einer Welt, in der alles nach Plan verläuft… schlägt das Chaos unvermittelt zu.
 

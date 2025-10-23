@@ -34,7 +34,7 @@ const botConfigurationSchema = new mongoose.Schema(
       index: true,
       trim: true,
       required: true,
-      default: process.env.DISCORD_BOT_BROADCAST_CRON,
+      default: process.env.BROADCAST_SERVICE_GUILD_CRON,
     },
     /** Whether the bot should do scheduled broadcasts for the guild. */
     broadcastsDisabled: {
@@ -84,7 +84,7 @@ const botConfigurationSchema = new mongoose.Schema(
         const defaultConfiguration = new BotConfigurationModel({
           guildId,
           broadcastChannelId: channelId,
-          broadcastCronSchedule: process.env.DISCORD_BOT_BROADCAST_CRON,
+          broadcastCronSchedule: process.env.BROADCAST_SERVICE_GUILD_CRON,
           lastModifiedBy: botId,
         });
 
@@ -106,33 +106,6 @@ const botConfigurationSchema = new mongoose.Schema(
           !channel.isDMBased() &&
           !!channel.permissionsFor(client.user.id)?.has(PermissionFlagsBits.SendMessages)
         );
-      },
-      /**
-       * Returns all guilds with enabled broadcasting schedules grouped by the CRON schedule.
-       * @returns {Promise<{ cron: string; guildIds: Set<string> }>[]} A list of grouped schedules.
-       */
-      getGroupedBroadcastSchedules: async (): Promise<
-        { cron: string; guildIds: Set<string> }[]
-      > => {
-        logger.info(
-          { model: BotConfigurationModel.constructor.name },
-          'Aggregating guild IDs grouped by cron schedule',
-        );
-        const aggregated = await BotConfigurationModel.aggregate<{
-          _id: string;
-          guildIds: string[];
-        }>()
-          .match({
-            broadcastsDisabled: false,
-          })
-          .group({
-            _id: '$broadcastCronSchedule',
-            guildIds: {
-              $addToSet: '$guildId',
-            },
-          });
-
-        return aggregated.map((group) => ({ cron: group._id, guildIds: new Set(group.guildIds) }));
       },
     },
     methods: {

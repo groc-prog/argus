@@ -1,10 +1,10 @@
 import puppeteer, { ElementHandle, Page } from 'puppeteer';
 import { Cron } from 'croner';
-import logger from '../utilities/logger';
 import dayjs from 'dayjs';
 import { MovieModel, type Movie } from '../models/movie';
+import Singleton from './singleton';
 
-export default class WebScraperService {
+export default class WebScraperService extends Singleton {
   private cronSchedule = process.env.WEB_SCRAPER_SERVICE_CRON;
   private baseUrl = 'https://gleisdorf.dieselkino.at/programmuebersicht';
   private job: Cron | null = null;
@@ -16,13 +16,6 @@ export default class WebScraperService {
   static jobName = 'web-scraper-service';
 
   start(): void {
-    if (!this.cronSchedule) {
-      logger.warn(
-        `No cron scheduler found in environment. ${this.constructor.name} will not be scheduled.`,
-      );
-      return;
-    }
-
     this.job = new Cron(
       this.cronSchedule,
       {
@@ -30,7 +23,7 @@ export default class WebScraperService {
         protect: true,
         catch: (err, executedJob) => {
           const nextSchedulesInMs = executedJob.msToNext();
-          logger.error(
+          this.serviceLogger.error(
             {
               err,
               job: executedJob.name,
@@ -41,23 +34,23 @@ export default class WebScraperService {
         },
       },
       async () => {
-        await this.execute();
+        await this.executeJob();
       },
     );
   }
 
-  private async execute(): Promise<void> {
+  private async executeJob(): Promise<void> {
     const scrapedMovies: Movie[] = [];
 
     if (!this.job || !this.job.name) {
-      logger.error(
+      this.serviceLogger.error(
         { service: this.constructor.name },
         'Service not initialized yet, can not run job',
       );
       return;
     }
 
-    const loggerWithCtx = logger.child({ job: this.job.name });
+    const loggerWithCtx = this.serviceLogger.child({ job: this.job.name });
     loggerWithCtx.info('Starting scheduled job');
     const browser = await puppeteer.launch();
 
@@ -94,7 +87,7 @@ export default class WebScraperService {
   }
 
   private async storeMovieData(movies: Movie[]): Promise<void> {
-    const loggerWithCtx = logger.child({ job: this.job?.name });
+    const loggerWithCtx = this.serviceLogger.child({ job: this.job?.name });
 
     const operations = movies.map((movieData) =>
       MovieModel.findOneAndUpdate(
@@ -122,7 +115,7 @@ export default class WebScraperService {
     page: Page,
     element: ElementHandle<HTMLDivElement>,
   ): Promise<Movie | null> {
-    const loggerWithCtx = logger.child({ job: this.job?.name });
+    const loggerWithCtx = this.serviceLogger.child({ job: this.job?.name });
 
     try {
       const extractedMovieData: Partial<Movie> = {};
@@ -245,7 +238,7 @@ export default class WebScraperService {
   private async extractScreeningContents(
     screeningElement: ElementHandle<HTMLDivElement>,
   ): Promise<Movie['screenings'] | null> {
-    const loggerWithCtx = logger.child({ job: this.job?.name });
+    const loggerWithCtx = this.serviceLogger.child({ job: this.job?.name });
     const extractedScreeningData = [] as unknown as Movie['screenings'];
 
     try {
