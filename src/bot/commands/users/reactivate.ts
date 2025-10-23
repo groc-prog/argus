@@ -13,7 +13,7 @@ import { getLoggerWithCtx } from '../../../utilities/logger';
 import { UserModel, type User } from '../../../models/user';
 import { isValidObjectId, Types } from 'mongoose';
 import Fuse from 'fuse.js';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import dayjs from 'dayjs';
 
 export default {
@@ -62,11 +62,11 @@ export default {
         discordId: interaction.user.id,
         $or: [
           {
-            'entries._id': isValidObjectId(notificationEntryIdOrName)
+            'notifications._id': isValidObjectId(notificationEntryIdOrName)
               ? new Types.ObjectId(notificationEntryIdOrName)
               : null,
           },
-          { 'entries.name': notificationEntryIdOrName },
+          { 'notifications.name': notificationEntryIdOrName },
         ],
       });
 
@@ -77,7 +77,7 @@ export default {
       )?.deactivatedAt;
       if (!user || !isDeactivated) {
         loggerWithCtx.info('No matching notification found');
-        await replyFromTemplate(interaction, replies.notificationNotFound, {
+        await sendInteractionReply(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -92,7 +92,7 @@ export default {
 
         if (!isValidDate) {
           loggerWithCtx.info('Invalid expiration date received, aborting');
-          await replyFromTemplate(interaction, replies.dateValidationError, {
+          await sendInteractionReply(interaction, replies.dateValidationError, {
             template: {
               date: expiresAt,
             },
@@ -111,7 +111,7 @@ export default {
       );
       if (entryIndex === -1) {
         loggerWithCtx.info('No matching notification found');
-        await replyFromTemplate(interaction, replies.notificationNotFound, {
+        await sendInteractionReply(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -131,7 +131,7 @@ export default {
       await user.save();
 
       loggerWithCtx.info('Notification reactivated successfully');
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           notificationName: entry.name,
         },
@@ -141,7 +141,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error while reactivating notification');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -156,42 +156,42 @@ export default {
 
     try {
       loggerWithCtx.info('Aggregating deactivated notification options');
-      const notification = await UserModel.aggregate<{
+      const user = await UserModel.aggregate<{
         _id: Types.ObjectId;
-        entries: { name: string; _id: Types.ObjectId }[];
+        notifications: { name: string; _id: Types.ObjectId }[];
       }>()
         .match({
           userId: interaction.user.id,
-          'entries.deactivatedAt': { $exists: true },
+          'notifications.deactivatedAt': { $exists: true },
         })
         .project({
-          entries: {
+          notifications: {
             $map: {
               input: {
                 $filter: {
-                  input: '$entries',
-                  as: 'entry',
-                  cond: { $ne: [{ $ifNull: ['$$entry.deactivatedAt', false] }, false] },
+                  input: '$notifications',
+                  as: 'notification',
+                  cond: { $ne: [{ $ifNull: ['$$notification.deactivatedAt', false] }, false] },
                 },
               },
-              as: 'entry',
+              as: 'notification',
               in: {
-                _id: '$$entry._id',
-                name: '$$entry.name',
+                _id: '$$notification._id',
+                name: '$$notification.name',
               },
             },
           },
         })
         .limit(1);
 
-      if (notification.length === 0) {
+      if (user.length === 0) {
         loggerWithCtx.info('No deactivated notifications found');
         await interaction.respond([]);
         return;
       }
 
       const notificationOptions =
-        notification[0]?.entries.map((notification) => ({
+        user[0]?.notifications.map((notification) => ({
           name: notification.name,
           value: notification._id.toString(),
         })) ?? [];
@@ -221,7 +221,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':popcorn:  NOTIFICATION REACTIVATED  :popcorn:')}
       In a world where silence reigned… a signal has returned to life.
 
@@ -230,7 +230,7 @@ const replies = {
 
       ${quote(italic(`The lights flicker back on — the show continues.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':popcorn:  BENACHRICHTIGUNG REAKTIVIERT  :popcorn:')}
       In einer Welt, in der die Stille herrschte… ist ein Signal zum Leben zurückgekehrt.
 
@@ -241,7 +241,7 @@ const replies = {
     `,
   },
   dateValidationError: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':calendar:  DATE VALIDATION ERROR  :calendar:')}
       In a world where time marches on relentlessly… some dates cannot be honored.
 
@@ -249,7 +249,7 @@ const replies = {
 
       ${quote(italic(`The bot cannot travel back in time. Adjust the date and try again to keep the story moving.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':calendar:  DATUMSVALIDIERUNGSFEHLER  :calendar:')}
       In einer Welt, in der die Zeit unerbittlich voranschreitet… können einige Daten nicht beachtet werden.
 
@@ -259,7 +259,7 @@ const replies = {
     `,
   },
   notificationNotFound: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':no_entry:  INVALID NOTIFICATION  :no_entry:')}
       In a world where every signal must be real… some shadows cannot be touched.
 
@@ -267,7 +267,7 @@ const replies = {
 
       ${quote(italic(`The stage cannot remove what is not there. Check your notification and try again.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':no_entry:  UNGÜLTIGE BENACHRICHTIGUNG  :no_entry:')}
       In einer Welt, in der jedes Signal real sein muss… können manche Schatten nicht berührt werden.
 
@@ -277,7 +277,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  NOTIFICATION REACTIVATION FAILED  :x:')}
       In a world where silence was meant to end… the signal refused to rise.
 
@@ -286,7 +286,7 @@ const replies = {
 
       ${quote(italic(`The gears turned, but the current never flowed. Please verify the notification and try again.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FEHLGESCHLAGENE BENACHRICHTIGUNGSREAKTIVIERUNG  :x:')}
       In einer Welt, in der die Stille enden sollte… weigerte sich das Signal, zu erwachen.
 

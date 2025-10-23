@@ -10,7 +10,7 @@ import {
   SlashCommandBuilder,
   subtext,
 } from 'discord.js';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { BotConfigurationModel } from '../../../models/bot-configuration';
 import dayjs from 'dayjs';
@@ -34,7 +34,7 @@ export default {
       const configuration = await BotConfigurationModel.findOne({ guildId: interaction.guildId });
       if (!configuration || !configuration.broadcastChannelId) {
         loggerWithCtx.info('No bot configuration found for guild');
-        await replyFromTemplate(interaction, replies.success, {
+        await sendInteractionReply(interaction, replies.success, {
           template: {
             latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
             setupCommand: setupCommand.data.name,
@@ -46,7 +46,7 @@ export default {
       const broadcastChannel = await configuration.resolveBroadcastChannel();
       const user = await configuration.resolveLastModifiedUser();
 
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
           setupFinished: true,
@@ -60,7 +60,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error during status check');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
         },
@@ -71,7 +71,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':loudspeaker:  SYSTEM STATUS REPORT  :loudspeaker:')}
       In a world where milliseconds matter, this bot answers the call…
 
@@ -92,7 +92,7 @@ const replies = {
         ${quote(italic(`The stage is dark. Configure the bot with ${inlineCode('/{{{setupCommand}}}')} to bring the show to life.`))}
       {{/setupFinished}}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':loudspeaker:  SYSTEMSTATUSBERICHT  :loudspeaker:')}
       In einer Welt, in der jede Millisekunden zählt, antwortet dieser Bot seiner Bestimmung…
 
@@ -115,7 +115,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':loudspeaker:  SYSTEM STATUS REPORT  :loudspeaker:')}
       In a world where configuration is incomplete… one server awaits a hero.
 
@@ -127,7 +127,7 @@ const replies = {
 
       ${quote(italic(`The lights went out, the show is over. The bot ran into a issue, please try again later.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':loudspeaker:  SYSTEMSTATUSBERICHT  :loudspeaker:')}
       In einer Welt, in der die Konfiguration unvollständig ist… wartet ein Server auf einen Helden.
 

@@ -24,7 +24,7 @@ import reactivateNotificationCommand from '../users/reactivate';
 import movieFeaturesCommand from '../movies/features';
 import movieDetailsCommand from '../movies/details';
 import movieScreeningsCommand from '../movies/screenings';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import Fuse from 'fuse.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 
@@ -50,7 +50,7 @@ export default {
     const command = interaction.options.getString('command', true);
 
     if (command in replies) {
-      await replyFromTemplate(interaction, replies[command] as typeof replies.unknown, {
+      await sendInteractionReply(interaction, replies[command] as typeof replies.unknown, {
         template: {
           botName: client.user?.displayName,
         },
@@ -59,7 +59,7 @@ export default {
         },
       });
     } else {
-      await replyFromTemplate(interaction, replies.unknown, {
+      await sendInteractionReply(interaction, replies.unknown, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -95,7 +95,7 @@ export default {
 
 const replies = {
   [statusCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  STATUS GUIDE  :information_source:')}
       ${bold('Command')}:  ${inlineCode(`/${statusCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Show the current system status and setup of the bot')}
@@ -113,7 +113,7 @@ const replies = {
 
       ${quote(italic("Use this command whenever you're unsure if the bot is ready to broadcast or if something looks off."))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  STATUS-GUIDE  :information_source:')}
       ${bold('Befehl')}:  ${inlineCode(`/${statusCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Zeigt den aktuellen Systemstatus und Setup-Status des Bots an')}
@@ -133,7 +133,7 @@ const replies = {
     `,
   },
   [setupCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  SETUP GUIDE  :information_source:')}
 
       ${bold('Command')}:  ${inlineCode(`/${setupCommand.data.name}`)}
@@ -149,7 +149,7 @@ const replies = {
       ${heading('What the heck is CRON?!?!', HeadingLevel.Three)}
       That's a good question! ${hyperlink('CRON expressions', 'https://en.wikipedia.org/wiki/Cron#Cron_expression')} are a way to define a recurring schedule with a standard format. Although it is commonly used in IT, it's also somewhat user friendly and there are many online tools ${hyperlink('like this one', 'https://crontab.io/validator')} which can help you define the CRON expression you want.
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  SETUP-GUIDE  :information_source:')}
 
       ${bold('Befehl')}:  ${inlineCode(`/${setupCommand.data.name}`)}
@@ -167,7 +167,7 @@ const replies = {
     `,
   },
   [addNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  NOTIFICATION GUIDE  :information_source:')}
       In a world where new movies appear every day… this command keeps you in the spotlight.
 
@@ -188,7 +188,7 @@ const replies = {
 
       ${quote(`In case you have never heard of ${hyperlink('fuzzy search', 'https://en.wikipedia.org/wiki/Approximate_string_matching')}, it basically allows you to define a not-so-correct keyword. It will still notify you about possible matches, not only exact ones.`)}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  BENACHRICHTIGUNGS-GUIDE  :information_source:')}
       In einer Welt, in der jeden Tag neue Filme erscheinen … hält dich dieser Befehl im Rampenlicht.
 
@@ -212,7 +212,7 @@ const replies = {
     `,
   },
   [listNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  LIST NOTIFICATIONS  :information_source:')}
       In a world where every notification is a beacon… this command reveals them all.
 
@@ -227,7 +227,7 @@ const replies = {
         `Understand the sending ${inlineCode('interval')} for each notification.`,
       ])}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  BENACHRICHTIGUNGEN AUFLISTEN  :information_source:')}
       In einer Welt, in der jede Benachrichtigung ein Signal ist… zeigt dir dieser Befehl alles auf.
 
@@ -244,7 +244,7 @@ const replies = {
     `,
   },
   [deleteNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  DELETE NOTIFICATION  :information_source:')}
       In a world where every notification leaves a trace… this command lets you clear one from existence.
 
@@ -258,7 +258,7 @@ const replies = {
         'Ensure that only the notifications you want continue to trigger.',
       ])}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  BENACHRICHTIGUNG LÖSCHEN  :information_source:')}
       In einer Welt, in der jede Benachrichtigung Spuren hinterlässt… erlaubt dir dieser Befehl, eine aus der Existenz zu entfernen.
 
@@ -274,7 +274,7 @@ const replies = {
     `,
   },
   [reactivateNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
     ${heading(':information_source:  REACTIVATE NOTIFICATION  :information_source:')}
       In a world where once-silent messengers await their call… this command brings them back to life.
 
@@ -288,7 +288,7 @@ const replies = {
         'Bring back a notification that once fell silent.',
       ])}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  BENACHRICHTIGUNG REAKTIVIEREN  :information_source:')}
       In einer Welt, in der einst verstummte Boten auf ihren Ruf warten… erweckt dieser Befehl sie zu neuem Leben.
 
@@ -304,7 +304,7 @@ const replies = {
     `,
   },
   [setTimezoneCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  SET TIMEZONE GUIDE  :information_source:')}
       ${bold('Command')}:  ${inlineCode(`/${setTimezoneCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Sets your current timezone for later use')}
@@ -316,7 +316,7 @@ const replies = {
 
       ${quote('You should always make sure that you have the correct timezone set, otherwise some things might not behave as expected.')}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  ZEITZONEN-GUIDE  :information_source:')}
       ${bold('Befehl')}:  ${inlineCode(`/${setTimezoneCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Legt deine aktuelle Zeitzone für die spätere Verwendung fest')}
@@ -330,7 +330,7 @@ const replies = {
     `,
   },
   [movieFeaturesCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  MOVIE FEATURES  :information_source:')}
       In a world where every story is made of fragments… this command unveils the essence of each movie trait.
 
@@ -345,7 +345,7 @@ const replies = {
         `Get inspiration for customizing your ${inlineCode(`/${addNotificationCommand.data.name}`)} notifications.`,
       ])}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  FILM-FEATURES  :information_source:')}
       In einer Welt, in der jede Geschichte aus Fragmenten besteht… enthüllt dieser Befehl die Essenz jeder Filmeigenschaft.
 
@@ -362,7 +362,7 @@ const replies = {
     `,
   },
   [movieDetailsCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  MOVIE DETAILS  :information_source:')}
       In a world where every story has layers… this command reveals them.
 
@@ -377,7 +377,7 @@ const replies = {
 
       ${quote(`You can use the ${inlineCode(`/${movieScreeningsCommand.data.name}`)} command to check when the movie is shown next.`)}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  FILMDETAILS  :information_source:')}
       In einer Welt, in der jede Geschichte Schichten hat… enthüllt dir dieser Befehl alles.
 
@@ -394,7 +394,7 @@ const replies = {
     `,
   },
   [movieScreeningsCommand.data.name]: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':information_source:  MOVIE SCREENINGS  :information_source:')}
       In a world where every story needs a stage… this command reveals the times and places.
 
@@ -409,7 +409,7 @@ const replies = {
         'Review extra features of each screening, like 3D or Dolby Atmos.',
       ])}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':information_source:  FILMVORSTELLUNGEN  :information_source:')}
       In einer Welt, in der jede Geschichte eine Bühne braucht… zeigt dir dieser Befehl die Zeiten und Orte.
 
@@ -426,7 +426,7 @@ const replies = {
     `,
   },
   unknown: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  UNKNOWN COMMAND  :x:')}
       In a world where every command has a purpose… you've discovered uncharted territory.
 
@@ -435,7 +435,7 @@ const replies = {
       ${quote(italic('The path you tried to walk does not exist. Try a known command instead.'))}
     `,
 
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  UNBEKANNTER BEFEHL  :x:')}
       In einer Welt, in der jeder Befehl seinen Platz hat … bist du ins Unbekannte vorgedrungen.
 

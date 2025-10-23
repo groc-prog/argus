@@ -12,7 +12,7 @@ import {
   unorderedList,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { KeywordType, UserModel } from '../../../models/user';
 import dayjs from 'dayjs';
 
@@ -30,20 +30,20 @@ export default {
       const user = await UserModel.findOne(
         { discordId: interaction.user.id },
         {
-          'entries.name': 1,
-          'entries.keywords': 1,
-          'entries.sendDms': 1,
-          'entries.maxDms': 1,
-          'entries.deactivatedAt': 1,
-          'entries.lastDmSentAt': 1,
-          'entries.expiresAt': 1,
-          'entries.dmDayInterval': 1,
+          'notifications.name': 1,
+          'notifications.keywords': 1,
+          'notifications.sentDms': 1,
+          'notifications.maxDms': 1,
+          'notifications.deactivatedAt': 1,
+          'notifications.lastDmSentAt': 1,
+          'notifications.expiresAt': 1,
+          'notifications.dmDayInterval': 1,
         },
       );
 
       if (!user) {
         loggerWithCtx.info('No notifications found for user');
-        await replyFromTemplate(interaction, replies.noNotifications, {
+        await sendInteractionReply(interaction, replies.noNotifications, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -72,7 +72,7 @@ export default {
           .sort((a) => (a.isTitleType ? -1 : 1)),
       }));
 
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           entries: templateData,
         },
@@ -82,7 +82,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error while getting notifications');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -93,7 +93,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':scroll:  YOUR NOTIFICATIONS  :scroll:')}
       In a world where messages travel like clockwork… your notifications stand ready.
 
@@ -113,7 +113,7 @@ const replies = {
 
       ${quote(italic(`Each entry stands as a sentinel. Manage them wisely to shape the flow of notifications.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':scroll:  DEINE BENACHRICHTIGUNGEN  :scroll:')}
       In einer Welt, in der Nachrichten wie Uhrwerke reisen… stehen deine Benachrichtigungen bereit.
 
@@ -135,7 +135,7 @@ const replies = {
     `,
   },
   noNotifications: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':ghost:  NO NOTIFICATIONS FOUND  :ghost:')}
       In a world where messages echo through time… your list stands silent.
 
@@ -143,7 +143,7 @@ const replies = {
 
       ${quote(italic(`Like a ghost in an empty hall, no notifications linger here. Create one to bring life to the silence.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':ghost:  KEINE BENACHRICHTIGUNGEN GEFUNDEN  :ghost:')}
       In einer Welt, in der Nachrichten durch die Zeit hallen… bleibt deine Liste still.
 
@@ -153,7 +153,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  NOTIFICATION LIST ERROR  :x:')}
       In a world where every alert should be accounted for… the scroll of messages remains sealed.
 
@@ -161,7 +161,7 @@ const replies = {
 
       ${quote(italic(`Without the list, the story's next chapter stays hidden. Please try again later.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FEHLER BEIM ABRUF DER BENACHRICHTIGUNGEN  :x:')}
       In einer Welt, in der jede Warnung gezählt werden sollte… bleibt die Schriftrolle der Nachrichten verschlossen.
 

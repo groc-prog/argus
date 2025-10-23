@@ -11,7 +11,7 @@ import {
   SlashCommandBuilder,
   unorderedList,
 } from 'discord.js';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import dayjs from 'dayjs';
 import { KeywordType, UserModel } from '../../../models/user';
@@ -155,7 +155,7 @@ export default {
 
       if ((!titlesArr || titlesArr.length === 0) && validFeatures.length === 0) {
         loggerWithCtx.info('No keywords defined, aborting');
-        await replyFromTemplate(interaction, replies.titleFeaturesValidationError, {
+        await sendInteractionReply(interaction, replies.titleFeaturesValidationError, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -169,7 +169,7 @@ export default {
 
         if (!isValidDate) {
           loggerWithCtx.info('Invalid expiration date received, aborting');
-          await replyFromTemplate(interaction, replies.dateValidationError, {
+          await sendInteractionReply(interaction, replies.dateValidationError, {
             template: {
               date: expiresAt,
             },
@@ -183,12 +183,12 @@ export default {
 
       loggerWithCtx.info('Checking if notification with same name already exists');
       const exists = await UserModel.findOne(
-        { discordId: interaction.user.id, 'entries.name': name },
+        { discordId: interaction.user.id, 'notifications.name': name },
         { _id: true },
       );
       if (exists) {
         loggerWithCtx.info('Notification with the same name already exists');
-        await replyFromTemplate(interaction, replies.duplicateNotificationError, {
+        await sendInteractionReply(interaction, replies.duplicateNotificationError, {
           template: {
             notificationName: name,
           },
@@ -220,7 +220,7 @@ export default {
       await user.save();
       loggerWithCtx.info('Notification created successfully');
 
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           notificationName: name,
           expiresAt: expiresAt ? dayjs(expiresAt).format('YYYY-MM-DD') : undefined,
@@ -235,7 +235,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error while creating new notification');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -246,7 +246,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
     ${heading(':popcorn:  NOTIFICATION CREATED  :popcorn:')}
     In a world where anticipation meets precision… a new signal rises.
 
@@ -264,7 +264,7 @@ const replies = {
 
     ${quote(italic(`The beacon is lit. You will be notified when the moment arrives.`))}
   `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
     ${heading(':popcorn:  BENACHRICHTIGUNG ERSTELLT  :popcorn:')}
     In einer Welt, in der Erwartung auf Präzision trifft… erhebt sich ein neues Signal.
 
@@ -284,7 +284,7 @@ const replies = {
   `,
   },
   dateValidationError: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':calendar:  DATE VALIDATION ERROR  :calendar:')}
       In a world where time marches on relentlessly… some dates cannot be honored.
 
@@ -292,7 +292,7 @@ const replies = {
 
       ${quote(italic(`The bot cannot travel back in time. Adjust the date and try again to keep the story moving.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':calendar:  DATUMSVALIDIERUNGSFEHLER  :calendar:')}
       In einer Welt, in der die Zeit unerbittlich voranschreitet… können einige Daten nicht beachtet werden.
 
@@ -302,7 +302,7 @@ const replies = {
     `,
   },
   titleFeaturesValidationError: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':warning:  KEYWORD VALIDATION ERROR  :warning:')}
       In a world where choices define destiny… nothing cannot be an option.
 
@@ -310,7 +310,7 @@ const replies = {
 
       ${quote(italic(`The stage is empty without guidance. Fill in at least one title or feature to bring the show to life.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':warning:  SCHLÜSSELWORTFEHLER  :warning:')}
       In einer Welt, in der Entscheidungen das Schicksal bestimmen… kann nichts nicht gewählt werden.
 
@@ -320,7 +320,7 @@ const replies = {
     `,
   },
   duplicateNotificationError: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':warning:  DUPLICATE NOTIFICATION  :warning:')}
       In a world where every name must be unique… echoes are not allowed.
 
@@ -328,7 +328,7 @@ const replies = {
 
       ${quote(italic(`The bot cannot conjure two identical signals. Rename your notification to continue the story.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':warning:  DOPPELTE BENACHRICHTIGUNG  :warning:')}
       In einer Welt, in der jeder Name einzigartig sein muss… sind Echos nicht erlaubt.
 
@@ -338,7 +338,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  NOTIFICATION CREATION FAILED  :x:')}
       In a world where plans are made… sometimes magic slips through our fingers.
 
@@ -346,7 +346,7 @@ const replies = {
 
       ${quote(italic(`The story cannot advance without this notification. Please try again later.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FEHLGESCHLAGENE BENACHRICHTIGUNGSERSTELLUNG  :x:')}
       In einer Welt, in der Pläne geschmiedet werden… entgleitet manchmal die Magie unseren Fingern.
 

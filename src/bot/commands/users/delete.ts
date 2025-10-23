@@ -9,7 +9,7 @@ import {
   quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { UserModel } from '../../../models/user';
 import { isValidObjectId, Types } from 'mongoose';
 import Fuse from 'fuse.js';
@@ -49,11 +49,11 @@ export default {
           discordId: interaction.user.id,
           $or: [
             {
-              'entries._id': isValidObjectId(notificationEntryIdOrName)
+              'notifications._id': isValidObjectId(notificationEntryIdOrName)
                 ? new Types.ObjectId(notificationEntryIdOrName)
                 : null,
             },
-            { 'entries.name': notificationEntryIdOrName },
+            { 'notifications.name': notificationEntryIdOrName },
           ],
         },
         {
@@ -75,7 +75,7 @@ export default {
 
       if (!user) {
         loggerWithCtx.info('No matching notification found');
-        await replyFromTemplate(interaction, replies.notificationNotFound, {
+        await sendInteractionReply(interaction, replies.notificationNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -84,7 +84,7 @@ export default {
       }
 
       loggerWithCtx.info('Notification removed successfully');
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           notificationName: user.notifications.find(
             (entry) =>
@@ -98,7 +98,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error while deleting notification');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -114,7 +114,7 @@ export default {
       loggerWithCtx.info('Getting autocomplete options for notifications');
       const user = await UserModel.findOne(
         { discordId: interaction.user.id },
-        { 'entries._id': 1, 'entries.name': 1 },
+        { 'notifications._id': 1, 'notifications.name': 1 },
       );
 
       if (!user) {
@@ -150,7 +150,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':white_check_mark:  NOTIFICATION REMOVED  :white_check_mark:')}
       In a world where notifications rise and fall… one has quietly departed.
 
@@ -158,7 +158,7 @@ const replies = {
 
       ${quote(italic(`The phantom has vanished. The flow of notifications continues unimpeded.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':white_check_mark:  BENACHRICHTIGUNG ENTFERNT  :white_check_mark:')}
       In einer Welt, in der Benachrichtigungen entstehen und vergehen… ist eine nun still verschwunden.
 
@@ -168,7 +168,7 @@ const replies = {
     `,
   },
   notificationNotFound: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':no_entry:  INVALID NOTIFICATION  :no_entry:')}
       In a world where every signal must be real… some shadows cannot be touched.
 
@@ -176,7 +176,7 @@ const replies = {
 
       ${quote(italic(`The stage cannot remove what is not there. Check your notification and try again.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':no_entry:  UNGÜLTIGE BENACHRICHTIGUNG  :no_entry:')}
       In einer Welt, in der jedes Signal real sein muss… können manche Schatten nicht berührt werden.
 
@@ -186,7 +186,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  NOTIFICATION REMOVAL FAILED  :x:')}
       In a world where notifications vanish like shadows… some stubborn phantoms linger.
 
@@ -194,7 +194,7 @@ const replies = {
 
       ${quote(italic(`The stage cannot clear this notification. Please try again later.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FEHLGESCHLAGENE BENACHRICHTIGUNGSENTFERNUNG  :x:')}
       In einer Welt, in der Benachrichtigungen wie Schatten verschwinden… verweilen manche hartnäckigen Geister.
 

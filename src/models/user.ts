@@ -34,7 +34,7 @@ const notificationSchema = new mongoose.Schema(
     },
     /**
      * The number of DM's already sent to the user. Used to check when the bot should
-     * stop send DM's to the user about movies matching the entries keywords. Incremented each
+     * stop sending DM's to the user about movies matching the entries keywords. Incremented each
      * time a DM is send. Will be `undefined` if `maxDms` is not set.
      */
     sentDms: {
@@ -104,8 +104,8 @@ const userSchema = new mongoose.Schema(
     notifications: {
       type: [notificationSchema],
       validate: {
-        validator: (entries: mongoose.InferSchemaType<typeof notificationSchema>[]) => {
-          const names = entries.map((entry) => entry.name);
+        validator: (notifications: mongoose.InferSchemaType<typeof notificationSchema>[]) => {
+          const names = notifications.map((notification) => notification.name);
           return names.length === new Set(names).size;
         },
         message: 'Duplicate `name` values are not allowed in notifications.',
@@ -118,4 +118,5 @@ const userSchema = new mongoose.Schema(
 );
 
 export type User = mongoose.InferSchemaType<typeof userSchema>;
-export const UserModel = mongoose.model('Notification', userSchema);
+export type Notification = mongoose.InferSchemaType<typeof notificationSchema>;
+export const UserModel = mongoose.model('User', userSchema);

@@ -11,7 +11,7 @@ import {
   quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import { message, replyFromTemplate } from '../../../utilities/reply';
+import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { MovieModel } from '../../../models/movie';
 import { isValidObjectId } from 'mongoose';
@@ -63,7 +63,7 @@ export default {
           { movieId: movieIdOrName },
           'Provided input option did not match any movies',
         );
-        await replyFromTemplate(interaction, replies.movieNotFound, {
+        await sendInteractionReply(interaction, replies.movieNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
           },
@@ -72,14 +72,11 @@ export default {
       }
 
       loggerWithCtx.info('Getting user timezone');
-      const userNotification = await UserModel.findOne(
-        { discordId: interaction.user.id },
-        { timezone: 1 },
-      );
+      const user = await UserModel.findOne({ discordId: interaction.user.id }, { timezone: 1 });
 
-      if (!userNotification)
+      if (!user)
         loggerWithCtx.info('No user configuration found, falling back to default timezone');
-      const timezone = userNotification?.timezone ?? 'Europe/Vienna';
+      const timezone = user?.timezone ?? 'Europe/Vienna';
 
       loggerWithCtx.debug('Building template context');
       const screenings = movie.screenings.map((screening) => ({
@@ -98,7 +95,7 @@ export default {
         startTime: dayjs.utc(screening.startTime).tz(timezone).format('YYYY-MM-DD HH:mm:ss Z'),
       }));
 
-      await replyFromTemplate(interaction, replies.success, {
+      await sendInteractionReply(interaction, replies.success, {
         template: {
           title: movie.title,
           screenings,
@@ -110,7 +107,7 @@ export default {
       });
     } catch (err) {
       loggerWithCtx.error({ err }, 'Error while getting movie screenings');
-      await replyFromTemplate(interaction, replies.error, {
+      await sendInteractionReply(interaction, replies.error, {
         interaction: {
           flags: MessageFlags.Ephemeral,
         },
@@ -136,7 +133,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':clapper:  {{{title}}}', HeadingLevel.Two)}
       {{#hasScreenings}}
         {{#screenings}}
@@ -152,7 +149,7 @@ const replies = {
         ${italic('No active screenings found for this movie.')}
       {{/hasScreenings}}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':clapper:  {{{title}}}', HeadingLevel.Two)}
       {{#hasScreenings}}
         {{#screenings}}
@@ -170,7 +167,7 @@ const replies = {
     `,
   },
   movieNotFound: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  MOVIE NOT FOUND  :x:')}
       In a world filled with stories… this one remains untold.
 
@@ -178,7 +175,7 @@ const replies = {
 
       ${quote(italic(`The reel spins endlessly, yet this story eludes the frame. Check your title and try again.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FILM NICHT GEFUNDEN  :x:')}
       In einer Welt voller Geschichten… bleibt diese unerzählt.
 
@@ -188,7 +185,7 @@ const replies = {
     `,
   },
   error: {
-    [Locale.EnglishUS]: message`
+    [Locale.EnglishUS]: discordMessage`
       ${heading(':x:  MOVIE RETRIEVAL FAILED  :x:')}
       In a world where stories should flow freely… something disrupted the reel.
 
@@ -196,7 +193,7 @@ const replies = {
 
       ${quote(italic(`The scene fades before it begins. Please try again later — the story will resume once balance is restored.`))}
     `,
-    [Locale.German]: message`
+    [Locale.German]: discordMessage`
       ${heading(':x:  FILMABRUF FEHLGESCHLAGEN  :x:')}
       In einer Welt, in der Geschichten frei fließen sollten… wurde der Filmstreifen unterbrochen.
 
