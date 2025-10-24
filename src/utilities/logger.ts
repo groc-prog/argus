@@ -1,6 +1,7 @@
 import type { AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js';
 import pino, { type Logger, type LoggerOptions } from 'pino';
 import pretty from 'pino-pretty';
+import packageInfo from '../../package.json';
 
 const LOG_CONFIG: LoggerOptions = {
   level: process.env.LOG_LEVEL ?? 'info',
@@ -9,7 +10,7 @@ const LOG_CONFIG: LoggerOptions = {
       ...bindings,
       environment: process.env.NODE_ENV ?? 'unknown',
       bun: Bun.version,
-      build: process.env.BUILD_VERSION,
+      build: packageInfo.version,
     }),
     level: (label) => ({ level: label }),
   },

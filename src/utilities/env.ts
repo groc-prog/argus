@@ -5,10 +5,6 @@ import logger from './logger';
  * This includes environment variables which the application needs during startup or at runtime.
  */
 export function ensureEnvironmentConfigured(): void {
-  if (!process.env.BUILD_VERSION) {
-    logger.error(`No build version defined in environment`);
-    process.exit(1);
-  }
   if (!process.env.MONGODB_URI) {
     logger.error(`No MongoDB URI in environment`);
     process.exit(1);
