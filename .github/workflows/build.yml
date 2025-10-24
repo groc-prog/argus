@@ -1,0 +1,54 @@
+name: Build / Publish
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun ci
+      - run: bun run build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: argus
+          path: dist/
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: argus
+          path: dist/
+      - uses: oven-sh/setup-bun@v2
+      - name: Run Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bunx semantic-release
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Rename build artifact
+        run: |
+          mv dist/* dist/argus-$VERSION
+      - name: Upload versioned artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: argus
+          path: dist/
