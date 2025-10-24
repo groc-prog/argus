@@ -429,7 +429,7 @@ const replies = {
   },
   unknown: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  UNKNOWN COMMAND  :x:')}
+      ${heading(':bangbang:  UNKNOWN COMMAND  :bangbang:')}
       In a world where every command has a purpose… you've discovered uncharted territory.
 
       The command you entered could not be found. Double-check the name and try again.
@@ -438,7 +438,7 @@ const replies = {
     `,
 
     [Locale.German]: discordMessage`
-      ${heading(':x:  UNBEKANNTER BEFEHL  :x:')}
+      ${heading(':bangbang:  UNBEKANNTER BEFEHL  :bangbang:')}
       In einer Welt, in der jeder Befehl seinen Platz hat … bist du ins Unbekannte vorgedrungen.
 
       Der von dir eingegebene Befehl konnte nicht gefunden werden. Überprüfe den Namen und versuche es erneut.

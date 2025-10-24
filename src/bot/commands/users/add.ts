@@ -341,7 +341,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  NOTIFICATION CREATION FAILED  :x:')}
+      ${heading(':bangbang:  NOTIFICATION CREATION FAILED  :bangbang:')}
       In a world where plans are made… sometimes magic slips through our fingers.
 
       The bot was unable to create the notification. The forces of the universe interfered, and the request could not be completed.
@@ -349,7 +349,7 @@ const replies = {
       ${quote(italic(`The story cannot advance without this notification. Please try again later.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FEHLGESCHLAGENE BENACHRICHTIGUNGSERSTELLUNG  :x:')}
+      ${heading(':bangbang:  FEHLGESCHLAGENE BENACHRICHTIGUNGSERSTELLUNG  :bangbang:')}
       In einer Welt, in der Pläne geschmiedet werden… entgleitet manchmal die Magie unseren Fingern.
 
       Der Bot konnte die Benachrichtigung nicht erstellen. Die Kräfte des Universums haben sich eingemischt, und die Anfrage konnte nicht abgeschlossen werden.

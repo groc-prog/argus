@@ -305,7 +305,7 @@ const replies = {
   },
   cronValidationError: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  SYSTEM ALERT  :bangbang:')}
+      ${heading(':calendar:  SYSTEM ALERT  :calendar:')}
       In a world where everything seems ready… fate intervenes.
 
       The provided CRON expression ${inlineCode('{{{cronExpression}}}')} is invalid and can thus not be processed. You can use ${hyperlink('this online tool', 'https://crontab.io/validator')} to help you find the issue.
@@ -313,7 +313,7 @@ const replies = {
       ${quote(italic(`The bot is prepared, yet the universe conspires.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':bangbang:  SYSTEMALARM  :bangbang:')}
+      ${heading(':calendar:  SYSTEMALARM  :calendar:')}
       In einer Welt, in der alles bereit scheint… greift das Schicksal ein.
 
       Der angegebene CRON-Ausdruck ist invalide und kann daher nicht verarbeitet werden. Du kannst ${hyperlink('dieses Online-Tool', 'https://crontab.io/validator')} benutzen, um deinen Fehler zu finden.
@@ -341,7 +341,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  UNEXPECTED ERROR  :x:')}
+      ${heading(':bangbang:  UNEXPECTED ERROR  :bangbang:')}
       In a world where plans unfold perfectly… chaos strikes unexpectedly.
 
       An unexpected error occurred while processing your request. The bot tried its best, but fate had other plans.
@@ -349,7 +349,7 @@ const replies = {
       ${quote(italic(`The show cannot continue at the moment. Please try again later.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  UNERWARTETER FEHLER  :x:')}
+      ${heading(':bangbang:  UNERWARTETER FEHLER  :bangbang:')}
       In einer Welt, in der alles nach Plan verläuft… schlägt das Chaos unvermittelt zu.
 
       Beim Verarbeiten deiner Anfrage ist ein unerwarteter Fehler aufgetreten. Der Bot hat sein Bestes versucht, doch das Schicksal hatte andere Pläne.

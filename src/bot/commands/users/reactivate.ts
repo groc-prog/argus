@@ -278,7 +278,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  NOTIFICATION REACTIVATION FAILED  :x:')}
+      ${heading(':bangbang:  NOTIFICATION REACTIVATION FAILED  :bangbang:')}
       In a world where silence was meant to end… the signal refused to rise.
 
       The bot attempted to reactivate the notification, but something went wrong.
@@ -287,7 +287,7 @@ const replies = {
       ${quote(italic(`The gears turned, but the current never flowed. Please verify the notification and try again.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FEHLGESCHLAGENE BENACHRICHTIGUNGSREAKTIVIERUNG  :x:')}
+      ${heading(':bangbang:  FEHLGESCHLAGENE BENACHRICHTIGUNGSREAKTIVIERUNG  :bangbang:')}
       In einer Welt, in der die Stille enden sollte… weigerte sich das Signal, zu erwachen.
 
       Der Bot hat versucht, die Benachrichtigung zu reaktivieren, aber etwas ist schiefgelaufen.

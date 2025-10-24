@@ -94,7 +94,7 @@ export default {
 const replies = {
   success: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':scroll:  YOUR NOTIFICATIONS  :scroll:')}
+      ${heading(':popcorn:  YOUR NOTIFICATIONS  :popcorn:')}
       In a world where messages travel like clockwork… your notifications stand ready.
 
       {{#entries}}
@@ -114,7 +114,7 @@ const replies = {
       ${quote(italic(`Each entry stands as a sentinel. Manage them wisely to shape the flow of notifications.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':scroll:  DEINE BENACHRICHTIGUNGEN  :scroll:')}
+      ${heading(':popcorn:  DEINE BENACHRICHTIGUNGEN  :popcorn:')}
       In einer Welt, in der Nachrichten wie Uhrwerke reisen… stehen deine Benachrichtigungen bereit.
 
       {{#entries}}
@@ -154,7 +154,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  NOTIFICATION LIST ERROR  :x:')}
+      ${heading(':bangbang:  NOTIFICATION LIST ERROR  :bangbang:')}
       In a world where every alert should be accounted for… the scroll of messages remains sealed.
 
       The bot was unable to retrieve your notifications. Something interfered with the request, and the list could not be delivered.
@@ -162,7 +162,7 @@ const replies = {
       ${quote(italic(`Without the list, the story's next chapter stays hidden. Please try again later.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FEHLER BEIM ABRUF DER BENACHRICHTIGUNGEN  :x:')}
+      ${heading(':bangbang:  FEHLER BEIM ABRUF DER BENACHRICHTIGUNGEN  :bangbang:')}
       In einer Welt, in der jede Warnung gezählt werden sollte… bleibt die Schriftrolle der Nachrichten verschlossen.
 
       Der Bot konnte deine Benachrichtigungen nicht abrufen. Etwas hat die Anfrage gestört, und die Liste konnte nicht geliefert werden.

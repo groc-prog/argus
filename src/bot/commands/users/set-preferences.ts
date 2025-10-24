@@ -137,7 +137,7 @@ export default {
 const replies = {
   success: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':hourglass:  PREFERENCE UPDATED  :hourglass:')}
+      ${heading(':ok_hand:  PREFERENCE UPDATED  :ok_hand:')}
       In a world where precision guides performance… balance has been restored.
 
       The bot has successfully updated your preferences.
@@ -146,7 +146,7 @@ const replies = {
       ${quote(italic(`The stage adjusts, the timing aligns — the show continues in perfect sync.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':hourglass:  PRÄFERENZEN AKTUALISIERT  :hourglass:')}
+      ${heading(':ok_hand:  PRÄFERENZEN AKTUALISIERT  :ok_hand:')}
       In einer Welt, in der Präzision die Aufführung bestimmt… wurde das Gleichgewicht wiederhergestellt.
 
       Der Bot hat deine Präferenzen erfolgreich auf aktualisiert.
@@ -157,7 +157,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  PREFERENCE UPDATE FAILED  :x:')}
+      ${heading(':bangbang:  PREFERENCE UPDATE FAILED  :bangbang:')}
       In a world where precision guides performance… something fell out of tune.
 
       The bot was unable to update your preferences. A disturbance occurred, and the request could not be completed.
@@ -165,7 +165,7 @@ const replies = {
       ${quote(italic(`The system drifts out of sync — please verify your input and try again later.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FEHLGESCHLAGENE PRÄFERENZAKTUALISIERUNG  :x:')}
+      ${heading(':bangbang:  FEHLGESCHLAGENE PRÄFERENZAKTUALISIERUNG  :bangbang:')}
       In einer Welt, in der Präzision die Aufführung bestimmt… geriet etwas aus dem Takt.
 
       Der Bot konnte deine Präferenzen nicht aktualisieren. Eine Störung ist aufgetreten, und die Anfrage konnte nicht abgeschlossen werden.
