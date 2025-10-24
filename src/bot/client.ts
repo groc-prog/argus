@@ -73,6 +73,12 @@ async function registerEventsFromDirectory(): Promise<void> {
   }
 }
 
+/**
+ * Initializes the Discord client by registering all commands/events from the `bot/commands` and `bot/events`
+ * directories.
+ * In development mode, will only register the commands and events for the guild ID defined in the
+ * `DISCORD_TEST_GUILD_ID` environment variable.
+ */
 export async function initializeDiscordClient(): Promise<void> {
   try {
     await registerCommandsFromDirectory();

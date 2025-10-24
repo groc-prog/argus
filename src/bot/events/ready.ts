@@ -6,6 +6,6 @@ export default {
   once: true,
 
   execute(client: Client<true>) {
-    logger.info(`Bot ${client.user.tag} ready to rumble`);
+    logger.info(`Bot ${client.user.tag} ready to receive interactions`);
   },
 };

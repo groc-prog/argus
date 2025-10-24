@@ -15,7 +15,7 @@ import { discordMessage, sendInteractionReply } from '../../../utilities/discord
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import dayjs from 'dayjs';
 import { KeywordType, UserModel } from '../../../models/user';
-import { FEATURES } from '../../../models/features';
+import { FEATURES } from '../../../constants';
 
 export default {
   data: new SlashCommandBuilder()

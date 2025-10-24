@@ -19,7 +19,7 @@ import setupCommand from '../utilities/setup';
 import addNotificationCommand from '../users/add';
 import listNotificationCommand from '../users/notifications';
 import deleteNotificationCommand from '../users/delete';
-import setTimezoneCommand from '../users/set-timezone';
+import setPreferencesCommand from '../users/set-preferences';
 import reactivateNotificationCommand from '../users/reactivate';
 import movieFeaturesCommand from '../movies/features';
 import movieDetailsCommand from '../movies/details';
@@ -303,27 +303,29 @@ const replies = {
       ])}
     `,
   },
-  [setTimezoneCommand.data.name]: {
+  [setPreferencesCommand.data.name]: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  SET TIMEZONE GUIDE  :information_source:')}
-      ${bold('Command')}:  ${inlineCode(`/${setTimezoneCommand.data.name}`)}
-      ${bold('Purpose')}:  ${inlineCode('Sets your current timezone for later use')}
+      ${heading(':information_source:  SET PREFERENCES GUIDE  :information_source:')}
+      ${bold('Command')}:  ${inlineCode(`/${setPreferencesCommand.data.name}`)}
+      ${bold('Purpose')}:  ${inlineCode('Sets your preferences (timezone, locale, etc.) for later use')}
 
       ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
         `Set your current timezone so the bot can correctly handle notifications and other movie updates. If no timezone is defined, defaults to ${inlineCode('Europe/Vienna')}.`,
+        `Set your locale so the bot can communicate with you. If no locale is defined, defaults to ${inlineCode(Locale.EnglishUS)}.`,
       ])}
 
       ${quote('You should always make sure that you have the correct timezone set, otherwise some things might not behave as expected.')}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':information_source:  ZEITZONEN-GUIDE  :information_source:')}
-      ${bold('Befehl')}:  ${inlineCode(`/${setTimezoneCommand.data.name}`)}
-      ${bold('Zweck')}:  ${inlineCode('Legt deine aktuelle Zeitzone für die spätere Verwendung fest')}
+      ${heading(':information_source:  PRÄFERENZEN-GUIDE  :information_source:')}
+      ${bold('Befehl')}:  ${inlineCode(`/${setPreferencesCommand.data.name}`)}
+      ${bold('Zweck')}:  ${inlineCode('Legt deine Präferenzen (Zeitzone, Sprache, uws.) für die spätere Verwendung fest')}
 
       ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
       ${unorderedList([
         `Deine aktuelle Zeitzone festzulegen, damit der Bot Benachrichtigungen und andere Film-Updates korrekt handhaben kann. Wenn keine Zeitzone definiert ist, wird standardmäßig ${inlineCode('Europe/Vienna')} verwendet.`,
+        `Deine Sprache festzulegen, damit der Bot sich mit dir verständigen kann. Wenn keine Zeitzone definiert ist, wird standardmäßig ${inlineCode(Locale.EnglishUS)} verwendet.`,
       ])}
 
       ${quote('Du solltest immer sicherstellen, dass du die richtige Zeitzone eingestellt hast, da sonst manche Dinge möglicherweise nicht wie erwartet funktionieren.')}

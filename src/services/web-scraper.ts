@@ -15,6 +15,11 @@ export default class WebScraperService extends Singleton {
 
   static jobName = 'web-scraper-service';
 
+  /**
+   * Registers the service to run on the defined CRON schedule, which is taken from the `WEB_SCRAPER_SERVICE_CRON`
+   * environment variable.
+   * @async
+   */
   start(): void {
     this.job = new Cron(
       this.cronSchedule,
@@ -293,7 +298,7 @@ export default class WebScraperService extends Singleton {
     const normalizedDateString = dateString.trim().toLowerCase();
     const [hour, minute] = showtime.split(':');
 
-    // In case the movie is scheduled for today, `Heute` is shown instead if a value
+    // In case the movie is scheduled for today, `Heute` is shown instead of a value
     if (normalizedDateString === 'heute') {
       return dayjs()
         .tz('Europe/Vienna')

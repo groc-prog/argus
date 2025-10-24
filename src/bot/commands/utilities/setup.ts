@@ -18,7 +18,7 @@ import Fuse from 'fuse.js';
 import { Cron } from 'croner';
 import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
 import { BotConfigurationModel, type BotConfiguration } from '../../../models/bot-configuration';
-import MessagingService from '../../../services/messaging';
+import NotificationService from '../../../services/notifications';
 
 export default {
   data: new SlashCommandBuilder()
@@ -43,6 +43,7 @@ export default {
     .addStringOption((option) =>
       option
         .setName('timezone')
+        .setNameLocalization(Locale.German, 'zeitzone')
         .setDescription('The timezone used for broadcasts')
         .setDescriptionLocalization(Locale.German, 'Die Zeitzone, die bei Broadcasts benutzt wird')
         .setAutocomplete(true),
@@ -50,7 +51,7 @@ export default {
     .addStringOption((option) =>
       option
         .setName('broadcast-schedule')
-        .setNameLocalization(Locale.German, 'broadcast-zeitplan')
+        .setNameLocalization(Locale.German, 'benachrichtigungs-interval')
         .setDescription(
           'A CRON expression describing the interval in which the bot will post movie updates.',
         )
@@ -62,7 +63,7 @@ export default {
     .addBooleanOption((option) =>
       option
         .setName('broadcasts-enabled')
-        .setNameLocalization(Locale.German, 'broadcasts-aktiviert')
+        .setNameLocalization(Locale.German, 'benachrichtigungen-aktiviert')
         .setDescription('Whether the bot should post movie updates in the server.')
         .setDescriptionLocalization(
           Locale.German,
@@ -168,7 +169,7 @@ export default {
       );
       loggerWithCtx.info('Bot configuration successfully updated');
 
-      const messagingService = MessagingService.getInstance();
+      const messagingService = NotificationService.getInstance();
       messagingService.updateGuildJob(
         guildId,
         updatedConfiguration.broadcastCronSchedule,
