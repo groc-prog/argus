@@ -25,4 +25,8 @@ export function ensureEnvironmentConfigured(): void {
     logger.fatal('No default broadcast guild cron schedule found in environment');
     process.exit(1);
   }
+  if (!process.env.NOTIFICATION_SERVICE_NOTIFICATION_CLEANUP_CRON) {
+    logger.fatal('No default notification cleanup cron schedule found in environment');
+    process.exit(1);
+  }
 }
