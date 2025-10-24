@@ -44,7 +44,7 @@ jobs:
         with:
           path: |
             .bun
-            bun.lockb
+            bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
       - run: bun run lint:check
@@ -61,7 +61,7 @@ jobs:
         with:
           path: |
             .bun
-            bun.lockb
+            bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
       - run: bun run type-check
@@ -78,7 +78,7 @@ jobs:
         with:
           path: |
             .bun
-            bun.lockb
+            bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
       - run: bun run fmt:check
