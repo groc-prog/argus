@@ -23,7 +23,7 @@ async function registerCommandsFromDirectory(): Promise<void> {
 
       const fileParts = file.name.split('.');
       const extension = fileParts.length > 1 ? fileParts.pop() : '';
-      if (extension !== 'ts') continue;
+      if (extension !== 'ts' && extension !== 'js') continue;
 
       const commandFilePath = path.join(commandFoldersPath, folder.name, file.name);
       logger.debug(`Discovered command at ${commandFilePath}, importing module`);
@@ -52,7 +52,7 @@ async function registerEventsFromDirectory(): Promise<void> {
 
     const fileParts = file.name.split('.');
     const extension = fileParts.length > 1 ? fileParts.pop() : '';
-    if (extension !== 'ts') continue;
+    if (extension !== 'ts' && extension !== 'js') continue;
 
     const eventFilePath = path.join(eventFoldersPath, file.name);
     logger.debug(`Discovered event at ${eventFilePath}, importing module`);
