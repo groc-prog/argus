@@ -70,16 +70,6 @@ const notificationSchema = new mongoose.Schema(
     lastDmSentAt: mongoose.SchemaTypes.Date,
     /** Date (12:00AM UTC) of when the entry should expire. */
     expiresAt: mongoose.SchemaTypes.Date,
-    /**
-     * The locale in which the DM will be. This value is not inferred by the users settings
-     * (as this is not exposed in the discord API) but rather from the guild in which he creates the
-     * notification.
-     */
-    locale: {
-      type: mongoose.SchemaTypes.String,
-      required: true,
-      enum: Object.values(Locale),
-    },
   },
   {
     timestamps: true,
@@ -95,11 +85,21 @@ const userSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    /** Timezone which will be used in DM's for date conversion of movies. */
     timezone: {
       type: mongoose.SchemaTypes.String,
       required: true,
       default: 'Europe/Vienna',
       enum: Intl.supportedValuesOf('timeZone'),
+    },
+    /**
+     * The locale in which the DM will be.
+     */
+    locale: {
+      type: mongoose.SchemaTypes.String,
+      required: true,
+      default: Locale.EnglishUS,
+      enum: Object.values(Locale),
     },
     notifications: {
       type: [notificationSchema],

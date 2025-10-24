@@ -10,7 +10,7 @@ import {
   unorderedList,
 } from 'discord.js';
 import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
-import { I18N } from '../../../models/features';
+import { I18N } from '../../../constants';
 
 export default {
   data: new SlashCommandBuilder()

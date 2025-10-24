@@ -8,10 +8,11 @@ import { randomUUID } from 'node:crypto';
 import dayjs from 'dayjs';
 import { MovieModel, type Movie } from '../models/movie';
 import Mustache from 'mustache';
-import { I18N } from '../models/features';
+import { I18N } from '../constants';
 import { KeywordType, UserModel } from '../models/user';
 import Fuse from 'fuse.js';
 import { client } from '../bot/client';
+import type { Types } from 'mongoose';
 
 enum JobType {
   Guild,
@@ -33,15 +34,21 @@ interface AggregatedGuilds {
 }
 
 interface AggregatedUser {
-  userId: string;
+  discordId: string;
+  timezone: string;
+  locale: Locale;
   notifications: { name: string; keywords: { type: KeywordType; value: string } }[];
 }
 
 interface AggregatedMovie {
-  _id: string;
-  title: string;
+  _id: Types.ObjectId;
+  title: Movie['title'];
+  description: Movie['description'];
+  durationMinutes: Movie['durationMinutes'];
+  genres: Movie['genres'];
+  ageRating: Movie['ageRating'];
+  screenings: Pick<Movie['screenings'][0], 'features' | 'startTime' | 'auditorium'>[];
   features: string[];
-  earliestScreening: Date;
 }
 
 interface MatchedMovie {
@@ -49,68 +56,117 @@ interface MatchedMovie {
   keywords: AggregatedUser['notifications'][0]['keywords'][];
 }
 
-export default class MessagingService extends Singleton {
-  private messageTemplate = {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':movie_camera:  {{{title}}}')}
-      {{#description}}
-        {{{description}}}
-      {{/description}}
+export default class NotificationService extends Singleton {
+  private messageTemplates = {
+    guild: {
+      [Locale.EnglishUS]: discordMessage`
+        ${heading(':movie_camera:  {{{title}}}')}
+        {{#description}}
+          {{{description}}}
+        {{/description}}
 
-      {{#ageRating}}
-        ${bold('Age Rating')}: ${inlineCode('{{{ageRating}}}')}
-      {{/ageRating}}
-      {{#durationMinutes}}
-        ${bold('Duration')}: ${inlineCode('{{durationMinutes}} min')}
-      {{/durationMinutes}}
-      {{#hasGenres}}
-        ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
-      {{/hasGenres}}
+        {{#ageRating}}
+          ${bold('Age Rating')}: ${inlineCode('{{{ageRating}}}')}
+        {{/ageRating}}
+        {{#durationMinutes}}
+          ${bold('Duration')}: ${inlineCode('{{durationMinutes}} min')}
+        {{/durationMinutes}}
+        {{#hasGenres}}
+          ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
+        {{/hasGenres}}
 
-      ${heading(':hourglass_flowing_sand:  Screenings')}
-      {{#screenings}}
-        ${bold('Start Time')}: ${inlineCode('{{{startTime}}}')}
-        ${bold('Auditorium')}: ${inlineCode('{{{auditorium}}}')}
-        {{#hasFeatures}}
-          ${bold('Features')}: ${inlineCode('{{{features}}}')}
-        {{/hasFeatures}}
+        ${heading(':hourglass_flowing_sand:  Screenings')}
+        {{#screenings}}
+          ${bold('Start Time')}: ${inlineCode('{{{startTime}}}')}
+          ${bold('Auditorium')}: ${inlineCode('{{{auditorium}}}')}
+          {{#hasFeatures}}
+            ${bold('Features')}: ${inlineCode('{{{features}}}')}
+          {{/hasFeatures}}
 
-      {{/screenings}}
-      {{#hasMoreScreenings}}
-        ${quote(`You can use the ${inlineCode(`/${movieScreeningsCommand.data.name}`)} command to check when the movie is shown next.`)}
-      {{/hasMoreScreenings}}
-    `,
-    [Locale.German]: discordMessage`
-      ${heading(':movie_camera:  {{{title}}}')}
-      {{#description}}
-        {{{description}}}
-      {{/description}}
+        {{/screenings}}
+        {{#hasMoreScreenings}}
+          ${quote(`You can use the ${inlineCode(`/${movieScreeningsCommand.data.name}`)} command to check when the movie is shown next.`)}
+        {{/hasMoreScreenings}}
+      `,
+      [Locale.German]: discordMessage`
+        ${heading(':movie_camera:  {{{title}}}')}
+        {{#description}}
+          {{{description}}}
+        {{/description}}
 
-      {{#ageRating}}
-        ${bold('Altersfreigabe')}: ${inlineCode('{{{ageRating}}}')}
-      {{/ageRating}}
-      {{#durationMinutes}}
-        ${bold('Dauer')}: ${inlineCode('{{durationMinutes}} min')}
-      {{/durationMinutes}}
-      {{#hasGenres}}
-        ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
-      {{/hasGenres}}
+        {{#ageRating}}
+          ${bold('Altersfreigabe')}: ${inlineCode('{{{ageRating}}}')}
+        {{/ageRating}}
+        {{#durationMinutes}}
+          ${bold('Dauer')}: ${inlineCode('{{durationMinutes}} min')}
+        {{/durationMinutes}}
+        {{#hasGenres}}
+          ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
+        {{/hasGenres}}
 
-      ${heading(':hourglass_flowing_sand:  Vorführungen')}
-      {{#screenings}}
-        ${bold('Startzeit')}: ${inlineCode('{{{startTime}}}')}
-        ${bold('Saal')}: ${inlineCode('{{{auditorium}}}')}
-        {{#hasFeatures}}
-          ${bold('Features')}: ${inlineCode('{{{features}}}')}
-        {{/hasFeatures}}
+        ${heading(':hourglass_flowing_sand:  Vorführungen')}
+        {{#screenings}}
+          ${bold('Startzeit')}: ${inlineCode('{{{startTime}}}')}
+          ${bold('Saal')}: ${inlineCode('{{{auditorium}}}')}
+          {{#hasFeatures}}
+            ${bold('Features')}: ${inlineCode('{{{features}}}')}
+          {{/hasFeatures}}
 
-      {{/screenings}}
-      {{#hasMoreScreenings}}
-        ${quote(`Du kannst den ${inlineCode(`/${movieScreeningsCommand.data.name}`)} Befehl nutzen, um zu checken, wann die nächste Vorstellung stattfindet.`)}
-      {{/hasMoreScreenings}}
-    `,
+        {{/screenings}}
+        {{#hasMoreScreenings}}
+          ${quote(`Du kannst den ${inlineCode(`/${movieScreeningsCommand.data.name}`)} Befehl nutzen, um zu checken, wann die nächste Vorstellung stattfindet.`)}
+        {{/hasMoreScreenings}}
+      `,
+    },
+    dm: {
+      [Locale.EnglishUS]: discordMessage`
+        ${heading(':movie_camera:  {{{title}}}')}
+        {{#description}}
+          {{{description}}}
+        {{/description}}
+
+        {{#ageRating}}
+          ${bold('Age Rating')}: ${inlineCode('{{{ageRating}}}')}
+        {{/ageRating}}
+        {{#durationMinutes}}
+          ${bold('Duration')}: ${inlineCode('{{durationMinutes}} min')}
+        {{/durationMinutes}}
+        {{#hasGenres}}
+          ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
+        {{/hasGenres}}
+
+        The next earliest screening is at {{{earliestScreening}}}. Use the ${inlineCode('/{{{screeningCommandName}}}')} to get more info on upcoming screenings.
+
+        ${quote(`This movie was matched by the the keywords ${inlineCode('{{{keywords}}}')}.`)}
+      `,
+      [Locale.German]: discordMessage`
+        ${heading(':movie_camera:  {{{title}}}')}
+        {{#description}}
+          {{{description}}}
+        {{/description}}
+
+        {{#ageRating}}
+          ${bold('Altersfreigabe')}: ${inlineCode('{{{ageRating}}}')}
+        {{/ageRating}}
+        {{#durationMinutes}}
+          ${bold('Dauer')}: ${inlineCode('{{durationMinutes}} min')}
+        {{/durationMinutes}}
+        {{#hasGenres}}
+          ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
+        {{/hasGenres}}
+
+        Die nächste Vorführung ist am {{{earliestScreening}}}. Du kannst den ${inlineCode('/{{{screeningCommandName}}}')} Befehl nutzen, um mehr über anstehende Vorführungen zu erfahren.
+
+        ${quote(`Dieser Film wurde mit den Schlüsselwörtern ${inlineCode('{{{keywords}}}')} gefunden.`)}
+      `,
+    },
   };
 
+  /**
+   * Registers all guild schedules and schedules the service to send DM's to users with notifications based on the
+   * `NOTIFICATION_SERVICE_DM_CRON` environment variable.
+   * @async
+   */
   async start(): Promise<void> {
     this.serviceLogger.debug('Scheduling jobs');
 
@@ -142,7 +198,7 @@ export default class MessagingService extends Singleton {
 
       this.serviceLogger.debug('Scheduling DM job');
       new Cron(
-        process.env.BROADCAST_SERVICE_DM_CRON,
+        process.env.NOTIFICATION_SERVICE_DM_CRON,
         {
           name: randomUUID(),
           context: { type: JobType.Dm },
@@ -169,6 +225,13 @@ export default class MessagingService extends Singleton {
     }
   }
 
+  /**
+   * Removes the guild ID from the old CRON schedule (if defined) and moves it to the new CRON schedule. The
+   * change will only take effect in the new job run.
+   * @param {string} guildId - The guild ID to update the CRON schedule for.
+   * @param {string} newCronSchedule - The new CRON schedule the guild should follow.
+   * @param {string} [oldCronSchedule] - The old CRON schedule of the guild, if it had one.
+   */
   updateGuildJob(guildId: string, newCronSchedule: string, oldCronSchedule?: string): void {
     const loggerWithCtx = this.serviceLogger.child({
       guildId,
@@ -325,16 +388,52 @@ export default class MessagingService extends Singleton {
 
       loggerWithGuildCtx.info('Sending message to guild channel');
       const usedLocale =
-        guild.preferredLocale in this.messageTemplate ? guild.preferredLocale : Locale.EnglishUS;
+        guild.preferredLocale in this.messageTemplates.guild
+          ? guild.preferredLocale
+          : Locale.EnglishUS;
 
       for (const movie of movies) {
         await channel.send({
-          content: this.renderMessage(movie, usedLocale, configuration.timezone),
+          content: this.compileGuildMessage(movie, usedLocale, configuration.timezone),
         });
       }
     } catch (err) {
       loggerWithGuildCtx.error({ err }, 'Failed to send message to guild channel');
     }
+  }
+
+  private compileGuildMessage(movie: Movie, locale: Locale, timezone: string): string {
+    const ctx = {
+      title: movie.title,
+      description: movie.description,
+      ageRating: movie.ageRating,
+      durationMinutes: movie.durationMinutes,
+      hasGenres: movie.genres.length !== 0,
+      genres: movie.genres.join(', '),
+      screenings: movie.screenings
+        .map((screening) => ({
+          auditorium: screening.auditorium,
+          features: screening.features
+            .map((feature) => {
+              const translations = I18N[feature];
+              if (!translations) return feature;
+
+              const featureTranslation = translations[locale];
+              if (!featureTranslation) return feature;
+              return featureTranslation;
+            })
+            .join(', '),
+          hasFeatures: screening.features.length !== 0,
+          startTime: dayjs.utc(screening.startTime).tz(timezone).format('YYYY-MM-DD HH:mm:ss Z'),
+        }))
+        .slice(0, 5),
+      hasMoreScreenings: movie.screenings.length > 5,
+    };
+
+    return Mustache.render(
+      this.messageTemplates.guild[locale as keyof typeof this.messageTemplates.guild],
+      ctx,
+    );
   }
 
   private async executeDmJob(): Promise<void> {
@@ -349,7 +448,9 @@ export default class MessagingService extends Singleton {
       // sent notifications, is not deactivated, not expired and not on cooldown
       const aggregatedUsers = await UserModel.aggregate<AggregatedUser>()
         .project({
-          userId: '$discordId',
+          discordId: '$discordId',
+          locale: '$locale',
+          timezone: '$timezone',
           notifications: {
             $filter: {
               input: '$notifications',
@@ -398,7 +499,9 @@ export default class MessagingService extends Singleton {
         })
         .project({
           _id: 1,
-          userId: 1,
+          discordId: 1,
+          locale: 1,
+          timezone: 1,
           notifications: {
             $map: {
               input: '$notifications',
@@ -410,6 +513,7 @@ export default class MessagingService extends Singleton {
             },
           },
         });
+
       if (aggregatedUsers.length !== 0)
         loggerWithJobCtx.info(`Found ${aggregatedUsers.length} users to check`);
       else {
@@ -422,27 +526,47 @@ export default class MessagingService extends Singleton {
       // provide fuzzy searching, we have to do it in memory. This means we have to load all available
       // movies and then search them afterwards
       const aggregatedMovies = await MovieModel.aggregate<AggregatedMovie>()
-        .match({
-          'screenings.0': { $exists: true },
+        .match({ 'screenings.0': { $exists: true } })
+        .project({
+          title: 1,
+          description: 1,
+          durationMinutes: 1,
+          genres: 1,
+          ageRating: 1,
+          futureScreenings: {
+            $filter: {
+              input: '$screenings',
+              as: 's',
+              cond: { $gte: ['$$s.startTime', now.toDate()] },
+            },
+          },
         })
-        .unwind('$screenings')
-        .group({
-          _id: '$_id',
-          title: { $first: '$title' },
-          features: { $addToSet: '$screenings.features' },
-          earliestScreening: { $min: '$screenings.startTime' },
-        })
+        .match({ 'screenings.0': { $exists: true } })
         .project({
           _id: 1,
           title: 1,
-          features: {
-            $reduce: {
-              input: '$features',
-              initialValue: [],
-              in: { $setUnion: ['$$value', '$$this'] },
+          description: 1,
+          durationMinutes: 1,
+          genres: 1,
+          ageRating: 1,
+          screenings: {
+            $map: {
+              input: '$futureScreenings',
+              as: 's',
+              in: {
+                features: '$$s.features',
+                startTime: '$$s.startTime',
+                auditorium: '$$s.auditorium',
+              },
             },
           },
-          earliestScreening: 1,
+          features: {
+            $reduce: {
+              input: '$futureScreenings',
+              initialValue: [],
+              in: { $setUnion: ['$$value', '$$this.features'] },
+            },
+          },
         });
 
       if (aggregatedMovies.length !== 0)
@@ -463,7 +587,7 @@ export default class MessagingService extends Singleton {
   private async sendDm(user: AggregatedUser, movies: AggregatedMovie[]): Promise<void> {
     const loggerWithUserCtx = this.serviceLogger.child({
       jobType: JobType.Guild,
-      userId: user.userId,
+      userId: user.discordId,
       notificationCount: user.notifications.length,
     });
 
@@ -471,11 +595,11 @@ export default class MessagingService extends Singleton {
       loggerWithUserCtx.debug('Checking cache for user');
       let resolvedUser: User;
 
-      const cachedUser = client.users.cache.get(user.userId);
+      const cachedUser = client.users.cache.get(user.discordId);
       if (cachedUser) resolvedUser = cachedUser;
       else {
         loggerWithUserCtx.info('Fetching user from Discord API');
-        resolvedUser = await client.users.fetch(user.userId);
+        resolvedUser = await client.users.fetch(user.discordId);
       }
 
       const matches: Record<string, MatchedMovie> = {};
@@ -499,7 +623,7 @@ export default class MessagingService extends Singleton {
 
             loggerWithKeywordCtx.info(`Found ${searchResults.length} match(es) for keyword`);
             for (const result of searchResults) {
-              const existingMatch = matches[result.item._id];
+              const existingMatch = matches[result.item._id.toString()];
               if (existingMatch) {
                 loggerWithKeywordCtx.debug(
                   'Movie matched by keyword was already matched by another keyword, adding current keyword to movie keywords',
@@ -509,7 +633,7 @@ export default class MessagingService extends Singleton {
               }
 
               loggerWithKeywordCtx.debug(`Adding new match for movie ${result.item.title}`);
-              matches[result.item._id] = {
+              matches[result.item._id.toString()] = {
                 movie: result.item,
                 keywords: [keyword],
               };
@@ -520,7 +644,7 @@ export default class MessagingService extends Singleton {
               if (!movie.features.includes(keyword.value)) continue;
 
               loggerWithKeywordCtx.info(`Found match for movie ${movie.title}`);
-              const existingMatch = matches[movie._id];
+              const existingMatch = matches[movie._id.toString()];
               if (existingMatch) {
                 loggerWithKeywordCtx.debug(
                   'Movie matched by keyword was already matched by another keyword, adding current keyword to movie keywords',
@@ -530,7 +654,7 @@ export default class MessagingService extends Singleton {
               }
 
               loggerWithKeywordCtx.debug(`Adding new match for movie ${movie.title}`);
-              matches[movie._id] = {
+              matches[movie._id.toString()] = {
                 movie,
                 keywords: [keyword],
               };
@@ -549,45 +673,46 @@ export default class MessagingService extends Singleton {
       }
 
       loggerWithUserCtx.info(`Found ${matchedMovies.length} matches in total, sending messages`);
-      for (const movie of matchedMovies) {
-        console.log(movie, resolvedUser);
-        // await resolvedUser.send({
-        //   content: this.renderMessage(movie, user.)
-        // });
+      for (const matchedMovie of matchedMovies) {
+        // If feature keywords have been defined, filter screenings for only the ones matching those keywords
+        const featureKeywords = keywords.filter(
+          (keyword) => keyword.type === KeywordType.MovieFeature,
+        );
+        if (featureKeywords.length > 0) {
+          loggerWithUserCtx.debug('Filtering screenings based on feature keywords');
+          matchedMovie.movie.screenings = matchedMovie.movie.screenings.filter((screening) =>
+            featureKeywords.every((keyword) => screening.features.includes(keyword.value)),
+          );
+        }
+
+        await resolvedUser.send({
+          content: this.compileDmMessage(matchedMovie, user.locale, user.timezone),
+        });
       }
     } catch (err) {
       loggerWithUserCtx.error({ err }, 'Failed to check user notifications');
     }
   }
 
-  private renderMessage(movie: Movie, locale: Locale, timezone: string): string {
+  private compileDmMessage(matchedMovie: MatchedMovie, locale: Locale, timezone: string): string {
     const ctx = {
-      title: movie.title,
-      description: movie.description,
-      ageRating: movie.ageRating,
-      durationMinutes: movie.durationMinutes,
-      hasGenres: movie.genres.length !== 0,
-      genres: movie.genres.join(', '),
-      screenings: movie.screenings
-        .map((screening) => ({
-          auditorium: screening.auditorium,
-          features: screening.features
-            .map((feature) => {
-              const translations = I18N[feature];
-              if (!translations) return feature;
-
-              const featureTranslation = translations[locale];
-              if (!featureTranslation) return feature;
-              return featureTranslation;
-            })
-            .join(', '),
-          hasFeatures: screening.features.length !== 0,
-          startTime: dayjs.utc(screening.startTime).tz(timezone).format('YYYY-MM-DD HH:mm:ss Z'),
-        }))
-        .slice(0, 5),
-      hasMoreScreenings: movie.screenings.length > 5,
+      title: matchedMovie.movie.title,
+      description: matchedMovie.movie.description,
+      ageRating: matchedMovie.movie.ageRating,
+      durationMinutes: matchedMovie.movie.durationMinutes,
+      hasGenres: matchedMovie.movie.genres.length !== 0,
+      genres: matchedMovie.movie.genres.join(', '),
+      earliestScreening: dayjs
+        .utc(matchedMovie.movie.screenings[0]?.startTime)
+        .tz(timezone)
+        .format('YYYY-MM-DD HH:mm:ss Z'),
+      screeningCommandName: movieScreeningsCommand.data.name,
+      keywords: matchedMovie.keywords.map((keyword) => keyword.value).join(', '),
     };
 
-    return Mustache.render(this.messageTemplate[locale as keyof typeof this.messageTemplate], ctx);
+    return Mustache.render(
+      this.messageTemplates.dm[locale as keyof typeof this.messageTemplates.dm],
+      ctx,
+    );
   }
 }

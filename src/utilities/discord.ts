@@ -26,8 +26,7 @@ export const discordMessage = (strings: TemplateStringsArray, ...values: unknown
 /**
  * Generates a response message from a given mustache.js template. Optionally, context for both
  * the template and the reply can be defined.
- * @param {Interaction} interaction - The current interaction. Must be a interaction which
- * provides the `reply` method.
+ * @param {Interaction} interaction - The current interaction. Must be a interaction which provides the `reply` method.
  * @param {I18nMessages} replies - A object containing all translated replies.
  * @param {ReplyContext} ctx - Optional context for both template and reply.
  * @throws {Error} If the interaction does not provide a `reply` method.
