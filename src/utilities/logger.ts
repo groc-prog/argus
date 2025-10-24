@@ -1,42 +1,29 @@
 import type { AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js';
-import pino, { type DestinationStream, type Logger } from 'pino';
-import path from 'node:path';
-import { exists, mkdir, writeFile } from 'node:fs/promises';
+import pino, { type Logger, type LoggerOptions } from 'pino';
+import pretty from 'pino-pretty';
 
-const logDirectoryPath = path.join(import.meta.dirname, '..', '..', 'logs');
-const logFilePath = path.join(logDirectoryPath, 'app.log');
-
-if (!(await exists(logFilePath))) {
-  await mkdir(logDirectoryPath, { recursive: true });
-  await writeFile(logFilePath, '');
-}
-
-const transport = pino.transport({
-  targets: [
-    {
-      target: 'pino/file',
-      options: { destination: logFilePath },
-    },
-    {
-      target: 'pino-pretty',
-    },
-  ],
-}) as unknown as DestinationStream;
-
-const logger = pino(
-  {
-    level: process.env.LOG_LEVEL ?? 'info',
-    formatters: {
-      bindings: (bindings) => ({
-        ...bindings,
-        environment: process.env.NODE_ENV ?? 'unknown',
-        bun: Bun.version,
-      }),
-    },
-    timestamp: pino.stdTimeFunctions.isoTime,
+const LOG_CONFIG: LoggerOptions = {
+  level: process.env.LOG_LEVEL ?? 'info',
+  formatters: {
+    bindings: (bindings) => ({
+      ...bindings,
+      environment: process.env.NODE_ENV ?? 'unknown',
+      bun: Bun.version,
+    }),
+    level: (label) => ({ level: label }),
   },
-  transport,
-);
+  timestamp: pino.stdTimeFunctions.isoTime,
+};
+
+const logger =
+  process.env.NODE_ENV === 'development'
+    ? pino(
+        LOG_CONFIG,
+        pretty({
+          colorize: true,
+        }),
+      )
+    : pino(LOG_CONFIG);
 
 /**
  * Attaches common context info from the interaction to a new child logger instance.
