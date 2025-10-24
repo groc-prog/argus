@@ -1,6 +1,27 @@
 import type { AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js';
-import pino, { type Logger } from 'pino';
-import pretty from 'pino-pretty';
+import pino, { type DestinationStream, type Logger } from 'pino';
+import path from 'node:path';
+import { exists, mkdir, writeFile } from 'node:fs/promises';
+
+const logDirectoryPath = path.join(import.meta.dirname, '..', '..', 'logs');
+const logFilePath = path.join(logDirectoryPath, 'app.log');
+
+if (!(await exists(logFilePath))) {
+  await mkdir(logDirectoryPath, { recursive: true });
+  await writeFile(logFilePath, '');
+}
+
+const transport = pino.transport({
+  targets: [
+    {
+      target: 'pino/file',
+      options: { destination: logFilePath },
+    },
+    {
+      target: 'pino-pretty',
+    },
+  ],
+}) as unknown as DestinationStream;
 
 const logger = pino(
   {
@@ -11,13 +32,10 @@ const logger = pino(
         environment: process.env.NODE_ENV ?? 'unknown',
         bun: Bun.version,
       }),
-      level: (label) => ({ level: label }),
     },
     timestamp: pino.stdTimeFunctions.isoTime,
   },
-  pretty({
-    colorize: true,
-  }),
+  transport,
 );
 
 /**
