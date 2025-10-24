@@ -1,7 +1,8 @@
 import logger from '../utilities/logger';
 
 export default abstract class Singleton {
-  private static instance: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  private static instances = new Map<Function, unknown>();
   protected serviceLogger = logger.child({ service: this.constructor.name });
 
   /**
@@ -11,8 +12,10 @@ export default abstract class Singleton {
    * instance of `T`
    */
   public static getInstance<T>(this: new () => T): T {
-    if (!Singleton.instance) Singleton.instance = new this();
+    if (!Singleton.instances.has(this)) {
+      Singleton.instances.set(this, new this());
+    }
 
-    return Singleton.instance as T;
+    return Singleton.instances.get(this) as T;
   }
 }

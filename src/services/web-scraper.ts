@@ -13,7 +13,7 @@ export default class WebScraperService extends Singleton {
     'div.movie-information-is-open div.movie-information div.movie-information-content-wrapper div.movie-content';
   private movieInfoSelector = `${this.baseMovieSelector} div.information-container div.information`;
 
-  static jobName = 'web-scraper-service';
+  static jobName = 'web-scraper';
 
   /**
    * Registers the service to run on the defined CRON schedule, which is taken from the `WEB_SCRAPER_SERVICE_CRON`
@@ -21,6 +21,7 @@ export default class WebScraperService extends Singleton {
    * @async
    */
   start(): void {
+    this.serviceLogger.info('Registering web scraper job');
     this.job = new Cron(
       this.cronSchedule,
       {
