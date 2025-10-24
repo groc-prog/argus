@@ -1,4 +1,4 @@
-name: Lint / Type-Check / Format
+name: Lint, type-check and format
 
 on:
   push:
@@ -11,32 +11,74 @@ on:
       - develop
 
 jobs:
-  lint:
-    name: Lint
+  setup:
+    name: Setup Dependencies
     runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun run lint:check
-      - uses: actions/cache@v3
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v3
         with:
-          path: .eslintcache
-          key: eslint-cache-${{ hashFiles('**/*.ts') }}
-          restore-keys: |
-            eslint-cache-
+          path: |
+            .bun
+            bun.lock
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lock') }}
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun ci
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Restore Bun cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            .bun
+            bun.lockb
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lockb') }}
+      - run: bun run lint:check
 
   type-check:
     name: Type-Check
     runs-on: ubuntu-latest
+    needs: setup
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      - name: Restore Bun cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            .bun
+            bun.lockb
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lockb') }}
       - run: bun run type-check
 
   format:
     name: Format
     runs-on: ubuntu-latest
+    needs: setup
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      - name: Restore Bun cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            .bun
+            bun.lockb
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lockb') }}
       - run: bun run fmt:check
