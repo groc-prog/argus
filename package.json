@@ -7,11 +7,12 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun run --hot --inspect src/index.ts",
-    "build": "bun build --entrypoints src/index.ts --outdir dist --target bun",
+    "build": "bun run tools/build.ts",
     "fmt": "prettier --write src/**/*.ts",
     "fmt:check": "prettier --check src/**/*.ts",
     "lint": "eslint --cache --fix src/**/*.ts",
     "lint:check": "eslint --cache src/**/*.ts",
+    "type-check": "tsc --noEmit",
     "prepare": "husky"
   },
   "devDependencies": {
