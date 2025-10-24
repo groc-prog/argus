@@ -16,7 +16,6 @@ import type { Types } from 'mongoose';
 
 enum JobType {
   Guild,
-  Dm,
 }
 
 interface JobContext {
@@ -200,14 +199,37 @@ export default class NotificationService extends Singleton {
       new Cron(
         process.env.NOTIFICATION_SERVICE_DM_CRON,
         {
-          name: randomUUID(),
-          context: { type: JobType.Dm },
+          name: 'send-dm',
           catch: (err, executedJob) => {
             const nextSchedulesInMs = executedJob.msToNext();
             this.serviceLogger.error(
               {
                 err,
-                jobType: JobType.Dm,
+                job: executedJob.name,
+                nextScheduleAt: nextSchedulesInMs
+                  ? dayjs().add(nextSchedulesInMs, 'ms')
+                  : 'unknown',
+              },
+              'Error during job execution',
+            );
+          },
+        },
+        async () => {
+          await this.executeDmJob();
+        },
+      );
+
+      this.serviceLogger.debug('Scheduling notification cleanup job');
+      new Cron(
+        process.env.NOTIFICATION_SERVICE_NOTIFICATION_CLEANUP_CRON,
+        {
+          name: 'cleanup-notifications',
+          catch: (err, executedJob) => {
+            const nextSchedulesInMs = executedJob.msToNext();
+            this.serviceLogger.error(
+              {
+                err,
+                job: executedJob.name,
                 nextScheduleAt: nextSchedulesInMs
                   ? dayjs().add(nextSchedulesInMs, 'ms')
                   : 'unknown',
@@ -306,6 +328,7 @@ export default class NotificationService extends Singleton {
           loggerWithCtx.error(
             {
               err,
+              job: `send-guild-message (${executedJob.getPattern()})`,
               nextScheduleAt: nextSchedulesInMs ? dayjs().add(nextSchedulesInMs, 'ms') : 'unknown',
             },
             'Error during job execution',
@@ -331,6 +354,62 @@ export default class NotificationService extends Singleton {
       },
     );
     loggerWithCtx.info('New job scheduled');
+  }
+
+  private async executeNotificationCleanupJob(): Promise<void> {
+    try {
+      this.serviceLogger.info('Removing all expired notifications without keep-alive flag');
+      const removedResult = await UserModel.updateMany(
+        {},
+        {
+          $pull: {
+            notifications: {
+              $and: [
+                { keepAfterExpiration: false },
+                {
+                  $or: [
+                    { expiresAt: { $lt: dayjs().utc().toDate() } },
+                    { $expr: { $eq: ['sentDms', 'maxDms'] } },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      );
+      this.serviceLogger.info(`Removed notifications for ${removedResult.modifiedCount} users`);
+
+      this.serviceLogger.info('Deactivating all expired notifications with keep-alive flag');
+      const deactivatedResult = await UserModel.updateMany(
+        {},
+        {
+          $set: {
+            'notifications.$[elem].deactivatedAt': dayjs().utc().toDate(),
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              $and: [
+                { 'elem.keepAfterExpiration': true },
+                {
+                  $or: [
+                    { 'elem.expiresAt': { $lt: dayjs().utc().toDate() } },
+                    { $expr: { $eq: ['$elem.sentDms', '$elem.maxDms'] } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      );
+
+      this.serviceLogger.info(
+        `Deactivated notifications for ${deactivatedResult.modifiedCount} users`,
+      );
+    } catch (err) {
+      this.serviceLogger.error({ err }, 'Failed to execute job');
+    }
   }
 
   private async executeGuildJob(guildIds: Set<string>): Promise<void> {
@@ -438,12 +517,9 @@ export default class NotificationService extends Singleton {
 
   private async executeDmJob(): Promise<void> {
     const now = dayjs.utc();
-    const loggerWithJobCtx = this.serviceLogger.child({
-      jobType: JobType.Dm,
-    });
 
     try {
-      loggerWithJobCtx.info("Aggregating user and notification ID's");
+      this.serviceLogger.info("Aggregating user and notification ID's");
       // Fetch all users which have at least one notification which has not reached the max. number of
       // sent notifications, is not deactivated, not expired and not on cooldown
       const aggregatedUsers = await UserModel.aggregate<AggregatedUser>()
@@ -515,13 +591,13 @@ export default class NotificationService extends Singleton {
         });
 
       if (aggregatedUsers.length !== 0)
-        loggerWithJobCtx.info(`Found ${aggregatedUsers.length} users to check`);
+        this.serviceLogger.info(`Found ${aggregatedUsers.length} users to check`);
       else {
-        loggerWithJobCtx.info('No users to send notifications to, skipping');
+        this.serviceLogger.info('No users to send notifications to, skipping');
         return;
       }
 
-      loggerWithJobCtx.info('Aggregating movies');
+      this.serviceLogger.info('Aggregating movies');
       // Get all movies which have screenings available. Since the free tier of MongoDB does not
       // provide fuzzy searching, we have to do it in memory. This means we have to load all available
       // movies and then search them afterwards
@@ -570,9 +646,9 @@ export default class NotificationService extends Singleton {
         });
 
       if (aggregatedMovies.length !== 0)
-        loggerWithJobCtx.info(`Found ${aggregatedMovies.length} movies to check`);
+        this.serviceLogger.info(`Found ${aggregatedMovies.length} movies to check`);
       else {
-        loggerWithJobCtx.info('Found no movies to check, skipping');
+        this.serviceLogger.info('Found no movies to check, skipping');
         return;
       }
 
@@ -580,7 +656,7 @@ export default class NotificationService extends Singleton {
         await this.sendDm(aggregatedUser, aggregatedMovies);
       }
     } catch (err) {
-      loggerWithJobCtx.error({ err }, 'Failed to execute job');
+      this.serviceLogger.error({ err }, 'Failed to execute job');
     }
   }
 
