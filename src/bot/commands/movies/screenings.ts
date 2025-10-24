@@ -134,7 +134,7 @@ export default {
 const replies = {
   success: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':clapper:  {{{title}}}', HeadingLevel.Two)}
+      ${heading(':clapper:  {{{title}}}  :clapper:', HeadingLevel.Two)}
       {{#hasScreenings}}
         {{#screenings}}
           ${bold('Start Time')}: ${inlineCode('{{{startTime}}}')}
@@ -150,7 +150,7 @@ const replies = {
       {{/hasScreenings}}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':clapper:  {{{title}}}', HeadingLevel.Two)}
+      ${heading(':clapper:  {{{title}}}  :clapper:', HeadingLevel.Two)}
       {{#hasScreenings}}
         {{#screenings}}
           ${bold('Startzeit')}: ${inlineCode('{{{startTime}}}')}
@@ -168,7 +168,7 @@ const replies = {
   },
   movieNotFound: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  MOVIE NOT FOUND  :x:')}
+      ${heading(':bangbang:  MOVIE NOT FOUND  :bangbang:')}
       In a world filled with stories… this one remains untold.
 
       The requested movie could not be found. It may not exist, or it might have slipped into the shadows of the archive.
@@ -176,7 +176,7 @@ const replies = {
       ${quote(italic(`The reel spins endlessly, yet this story eludes the frame. Check your title and try again.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FILM NICHT GEFUNDEN  :x:')}
+      ${heading(':bangbang:  FILM NICHT GEFUNDEN  :bangbang:')}
       In einer Welt voller Geschichten… bleibt diese unerzählt.
 
       Der angeforderte Film konnte nicht gefunden werden. Er existiert möglicherweise nicht oder ist in den Schatten des Archivs verschwunden.
@@ -186,7 +186,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  MOVIE RETRIEVAL FAILED  :x:')}
+      ${heading(':bangbang:  MOVIE RETRIEVAL FAILED  :bangbang:')}
       In a world where stories should flow freely… something disrupted the reel.
 
       The bot was unable to retrieve the requested movie information. A disturbance in the network or an issue with the data source prevented completion of your request.
@@ -194,7 +194,7 @@ const replies = {
       ${quote(italic(`The scene fades before it begins. Please try again later — the story will resume once balance is restored.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FILMABRUF FEHLGESCHLAGEN  :x:')}
+      ${heading(':bangbang:  FILMABRUF FEHLGESCHLAGEN  :bangbang:')}
       In einer Welt, in der Geschichten frei fließen sollten… wurde der Filmstreifen unterbrochen.
 
       Der Bot konnte die angeforderten Filminformationen nicht abrufen. Eine Störung im Netzwerk oder ein Problem mit der Datenquelle hat die Anfrage verhindert.

@@ -151,7 +151,7 @@ export default {
 const replies = {
   success: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':white_check_mark:  NOTIFICATION REMOVED  :white_check_mark:')}
+      ${heading(':ok_hand:  NOTIFICATION REMOVED  :ok_hand:')}
       In a world where notifications rise and fall… one has quietly departed.
 
       The notification ${inlineCode('{{{notificationName}}}')} has been successfully removed. The stage is cleared, and nothing lingers in its place.
@@ -159,7 +159,7 @@ const replies = {
       ${quote(italic(`The phantom has vanished. The flow of notifications continues unimpeded.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':white_check_mark:  BENACHRICHTIGUNG ENTFERNT  :white_check_mark:')}
+      ${heading(':ok_hand:  BENACHRICHTIGUNG ENTFERNT  :ok_hand:')}
       In einer Welt, in der Benachrichtigungen entstehen und vergehen… ist eine nun still verschwunden.
 
       Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich entfernt. Die Bühne ist frei, und nichts bleibt an ihrem Platz.
@@ -187,7 +187,7 @@ const replies = {
   },
   error: {
     [Locale.EnglishUS]: discordMessage`
-      ${heading(':x:  NOTIFICATION REMOVAL FAILED  :x:')}
+      ${heading(':bangbang:  NOTIFICATION REMOVAL FAILED  :bangbang:')}
       In a world where notifications vanish like shadows… some stubborn phantoms linger.
 
       The bot was unable to remove the notification. The forces of the universe interfered, and the request could not be completed.
@@ -195,7 +195,7 @@ const replies = {
       ${quote(italic(`The stage cannot clear this notification. Please try again later.`))}
     `,
     [Locale.German]: discordMessage`
-      ${heading(':x:  FEHLGESCHLAGENE BENACHRICHTIGUNGSENTFERNUNG  :x:')}
+      ${heading(':bangbang:  FEHLGESCHLAGENE BENACHRICHTIGUNGSENTFERNUNG  :bangbang:')}
       In einer Welt, in der Benachrichtigungen wie Schatten verschwinden… verweilen manche hartnäckigen Geister.
 
       Der Bot konnte die Benachrichtigung nicht entfernen. Die Kräfte des Universums haben sich eingemischt, und die Anfrage konnte nicht abgeschlossen werden.

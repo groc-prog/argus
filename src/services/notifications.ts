@@ -69,7 +69,7 @@ export default class NotificationService extends Singleton {
   private messageTemplates = {
     guild: {
       [Locale.EnglishUS]: discordMessage`
-        ${heading(':movie_camera:  {{{title}}}')}
+        ${heading(':clapper:  {{{title}}}  :clapper:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -98,7 +98,7 @@ export default class NotificationService extends Singleton {
         {{/hasMoreScreenings}}
       `,
       [Locale.German]: discordMessage`
-        ${heading(':movie_camera:  {{{title}}}')}
+        ${heading(':clapper:  {{{title}}}  :clapper:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -129,7 +129,7 @@ export default class NotificationService extends Singleton {
     },
     dm: {
       [Locale.EnglishUS]: discordMessage`
-        ${heading(':movie_camera:  {{{title}}}')}
+        ${heading(':popcorn:  Get the popcorn ready - {{{title}}} is coming  :popcorn:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -149,7 +149,7 @@ export default class NotificationService extends Singleton {
         ${quote(`This movie was matched by the notification(s) ${inlineCode('{{{matchedNotifications}}}')}.`)}
       `,
       [Locale.German]: discordMessage`
-        ${heading(':movie_camera:  {{{title}}}')}
+        ${heading(':popcorn:  Bereite das Popcorn vor - {{{title}}} kommt  :popcorn:')}
         {{#description}}
           {{{description}}}
         {{/description}}
