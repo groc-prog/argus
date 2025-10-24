@@ -42,7 +42,7 @@ export async function sendInteractionReply(
   ctx.template ??= {};
   ctx.interaction ??= {};
 
-  const template = replies[Locale.EnglishUS];
+  const template = replies[interaction.locale] ?? replies[Locale.EnglishUS];
   const message = Mustache.render(template, ctx.template);
 
   await interaction.reply({

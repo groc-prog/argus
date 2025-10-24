@@ -33,10 +33,15 @@ interface AggregatedGuilds {
 }
 
 interface AggregatedUser {
+  _id: Types.ObjectId;
   discordId: string;
   timezone: string;
   locale: Locale;
-  notifications: { name: string; keywords: { type: KeywordType; value: string } }[];
+  notifications: {
+    _id: Types.ObjectId;
+    name: string;
+    keywords: { type: KeywordType; value: string };
+  }[];
 }
 
 interface AggregatedMovie {
@@ -52,7 +57,7 @@ interface AggregatedMovie {
 
 interface MatchedMovie {
   movie: Omit<AggregatedMovie, '_id'>;
-  keywords: AggregatedUser['notifications'][0]['keywords'][];
+  keywords: (AggregatedUser['notifications'][0]['keywords'] & { notificationName: string })[];
 }
 
 export default class NotificationService extends Singleton {
@@ -136,7 +141,7 @@ export default class NotificationService extends Singleton {
 
         The next earliest screening is at {{{earliestScreening}}}. Use the ${inlineCode('/{{{screeningCommandName}}}')} to get more info on upcoming screenings.
 
-        ${quote(`This movie was matched by the the keywords ${inlineCode('{{{keywords}}}')}.`)}
+        ${quote(`This movie was matched by the notification(s) ${inlineCode('{{{matchedNotifications}}}')}.`)}
       `,
       [Locale.German]: discordMessage`
         ${heading(':movie_camera:  {{{title}}}')}
@@ -156,7 +161,7 @@ export default class NotificationService extends Singleton {
 
         Die nächste Vorführung ist am {{{earliestScreening}}}. Du kannst den ${inlineCode('/{{{screeningCommandName}}}')} Befehl nutzen, um mehr über anstehende Vorführungen zu erfahren.
 
-        ${quote(`Dieser Film wurde mit den Schlüsselwörtern ${inlineCode('{{{keywords}}}')} gefunden.`)}
+        ${quote(`Dieser Film wurde mit den Benachrichigung(en) ${inlineCode('{{{matchedNotifications}}}')} gefunden.`)}
       `,
     },
   };
@@ -239,7 +244,7 @@ export default class NotificationService extends Singleton {
           },
         },
         async () => {
-          await this.executeDmJob();
+          await this.executeNotificationCleanupJob();
         },
       );
     } catch (err) {
@@ -524,6 +529,7 @@ export default class NotificationService extends Singleton {
       // sent notifications, is not deactivated, not expired and not on cooldown
       const aggregatedUsers = await UserModel.aggregate<AggregatedUser>()
         .project({
+          _id: 1,
           discordId: '$discordId',
           locale: '$locale',
           timezone: '$timezone',
@@ -583,6 +589,7 @@ export default class NotificationService extends Singleton {
               input: '$notifications',
               as: 'notification',
               in: {
+                _id: '$$notification._id',
                 name: '$$notification.name',
                 keywords: '$$notification.keywords',
               },
@@ -654,6 +661,10 @@ export default class NotificationService extends Singleton {
 
       for (const aggregatedUser of aggregatedUsers) {
         await this.sendDm(aggregatedUser, aggregatedMovies);
+        await this.updateNotifications(
+          aggregatedUser._id,
+          aggregatedUser.notifications.map((notification) => notification._id),
+        );
       }
     } catch (err) {
       this.serviceLogger.error({ err }, 'Failed to execute job');
@@ -684,7 +695,10 @@ export default class NotificationService extends Singleton {
       });
 
       loggerWithUserCtx.info('Searching movies for keyword matches');
-      const keywords = user.notifications.flatMap((notification) => notification.keywords);
+      const keywords = user.notifications.flatMap((notification) => ({
+        notificationName: notification.name,
+        ...notification.keywords,
+      }));
 
       for (const keyword of keywords) {
         const loggerWithKeywordCtx = loggerWithUserCtx.child({
@@ -783,12 +797,37 @@ export default class NotificationService extends Singleton {
         .tz(timezone)
         .format('YYYY-MM-DD HH:mm:ss Z'),
       screeningCommandName: movieScreeningsCommand.data.name,
-      keywords: matchedMovie.keywords.map((keyword) => keyword.value).join(', '),
+      matchedNotifications: matchedMovie.keywords
+        .map((keyword) => keyword.notificationName)
+        .join(', '),
     };
 
     return Mustache.render(
       this.messageTemplates.dm[locale as keyof typeof this.messageTemplates.dm],
       ctx,
     );
+  }
+
+  private async updateNotifications(
+    userId: Types.ObjectId,
+    notificationIds: Types.ObjectId[],
+  ): Promise<void> {
+    const loggerWithUserCtx = this.serviceLogger.child({ userId: userId.toString() });
+
+    try {
+      loggerWithUserCtx.info('Updating counter for sent notifications');
+      await UserModel.updateOne(
+        { _id: userId },
+        {
+          $inc: { 'notifications.$[notification].sentDms': 1 },
+        },
+        {
+          arrayFilters: [{ 'notification._id': { $in: notificationIds } }],
+        },
+      );
+      loggerWithUserCtx.info('Notifications updated');
+    } catch (err) {
+      loggerWithUserCtx.error({ err }, 'Failed to update sent notification counter');
+    }
   }
 }
