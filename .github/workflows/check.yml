@@ -1,0 +1,42 @@
+name: Lint / Type-Check / Format
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun run lint:check
+      - uses: actions/cache@v3
+        with:
+          path: .eslintcache
+          key: eslint-cache-${{ hashFiles('**/*.ts') }}
+          restore-keys: |
+            eslint-cache-
+
+  type-check:
+    name: Type-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun run type-check
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun run fmt:check
