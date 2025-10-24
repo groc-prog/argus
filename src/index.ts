@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import logger from './utilities/logger';
 import { initializeDiscordClient } from './bot/client';
 import { ensureEnvironmentConfigured } from './utilities/env';
+import NotificationService from './services/notifications';
+import WebScraperService from './services/web-scraper';
 
 ensureEnvironmentConfigured();
 
@@ -26,5 +28,11 @@ mongoose.connection.on('error', (event) => {
 
 logger.info('Connecting to MongoDB');
 await mongoose.connect(process.env.MONGODB_URI);
+
+const webScraperService = WebScraperService.getInstance();
+webScraperService.start();
+
+const notificationService = NotificationService.getInstance();
+await notificationService.start();
 
 await initializeDiscordClient();

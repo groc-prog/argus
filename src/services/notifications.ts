@@ -40,7 +40,7 @@ interface AggregatedUser {
   notifications: {
     _id: Types.ObjectId;
     name: string;
-    keywords: { type: KeywordType; value: string };
+    keywords: { type: KeywordType; value: string; _id: Types.ObjectId }[];
   }[];
 }
 
@@ -57,7 +57,12 @@ interface AggregatedMovie {
 
 interface MatchedMovie {
   movie: Omit<AggregatedMovie, '_id'>;
-  keywords: (AggregatedUser['notifications'][0]['keywords'] & { notificationName: string })[];
+  keywords: {
+    notificationName: string;
+    notificationId: Types.ObjectId;
+    type: KeywordType;
+    value: string;
+  }[];
 }
 
 export default class NotificationService extends Singleton {
@@ -139,7 +144,7 @@ export default class NotificationService extends Singleton {
           ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
         {{/hasGenres}}
 
-        The next earliest screening is at {{{earliestScreening}}}. Use the ${inlineCode('/{{{screeningCommandName}}}')} to get more info on upcoming screenings.
+        The next earliest screening is at ${inlineCode('{{{earliestScreening}}}')}. Use the ${inlineCode('/{{{screeningCommandName}}}')} to get more info on upcoming screenings.
 
         ${quote(`This movie was matched by the notification(s) ${inlineCode('{{{matchedNotifications}}}')}.`)}
       `,
@@ -159,7 +164,7 @@ export default class NotificationService extends Singleton {
           ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
         {{/hasGenres}}
 
-        Die nächste Vorführung ist am {{{earliestScreening}}}. Du kannst den ${inlineCode('/{{{screeningCommandName}}}')} Befehl nutzen, um mehr über anstehende Vorführungen zu erfahren.
+        Die nächste Vorführung ist am ${inlineCode('{{{earliestScreening}}}')}. Du kannst den ${inlineCode('/{{{screeningCommandName}}}')} Befehl nutzen, um mehr über anstehende Vorführungen zu erfahren.
 
         ${quote(`Dieser Film wurde mit den Benachrichigung(en) ${inlineCode('{{{matchedNotifications}}}')} gefunden.`)}
       `,
@@ -470,7 +475,7 @@ export default class NotificationService extends Singleton {
         return;
       }
 
-      loggerWithGuildCtx.info('Sending message to guild channel');
+      loggerWithGuildCtx.info('Sending messages to guild channel');
       const usedLocale =
         guild.preferredLocale in this.messageTemplates.guild
           ? guild.preferredLocale
@@ -481,6 +486,7 @@ export default class NotificationService extends Singleton {
           content: this.compileGuildMessage(movie, usedLocale, configuration.timezone),
         });
       }
+      loggerWithGuildCtx.info(`${movies.length} messages send`);
     } catch (err) {
       loggerWithGuildCtx.error({ err }, 'Failed to send message to guild channel');
     }
@@ -508,7 +514,7 @@ export default class NotificationService extends Singleton {
             })
             .join(', '),
           hasFeatures: screening.features.length !== 0,
-          startTime: dayjs.utc(screening.startTime).tz(timezone).format('YYYY-MM-DD HH:mm:ss Z'),
+          startTime: dayjs.utc(screening.startTime).tz(timezone).format('YYYY-MM-DD HH:mm:ss'),
         }))
         .slice(0, 5),
       hasMoreScreenings: movie.screenings.length > 5,
@@ -521,7 +527,7 @@ export default class NotificationService extends Singleton {
   }
 
   private async executeDmJob(): Promise<void> {
-    const now = dayjs.utc();
+    const now = dayjs.utc().toDate();
 
     try {
       this.serviceLogger.info("Aggregating user and notification ID's");
@@ -530,9 +536,9 @@ export default class NotificationService extends Singleton {
       const aggregatedUsers = await UserModel.aggregate<AggregatedUser>()
         .project({
           _id: 1,
-          discordId: '$discordId',
-          locale: '$locale',
-          timezone: '$timezone',
+          discordId: 1,
+          locale: 1,
+          timezone: 1,
           notifications: {
             $filter: {
               input: '$notifications',
@@ -541,21 +547,44 @@ export default class NotificationService extends Singleton {
                 $and: [
                   {
                     $or: [
-                      { $lt: ['$$notification.sentDms', '$$notification.maxDms'] },
-                      { $eq: ['$$notification.maxDms', null] },
-                      { $eq: ['$$notification.maxDms', undefined] },
+                      {
+                        $and: [
+                          {
+                            $or: [
+                              { $eq: ['$$notification.maxDms', null] },
+                              { $not: '$$notification.maxDms' },
+                            ],
+                          },
+                          {
+                            $or: [
+                              { $eq: ['$$notification.sentDms', null] },
+                              { $not: '$$notification.sentDms' },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        $expr: { $lt: ['$$notification.sentDms', '$$notification.maxDms'] },
+                      },
                     ],
                   },
                   {
                     $or: [
                       { $eq: ['$$notification.deactivatedAt', null] },
-                      { $eq: ['$$notification.deactivatedAt', undefined] },
+                      { $not: '$$notification.deactivatedAt' },
+                    ],
+                  },
+                  {
+                    $or: [
+                      { $eq: ['$$notification.expiresAt', null] },
+                      { $not: '$$notification.expiresAt' },
+                      { $gt: ['$$notification.expiresAt', now] },
                     ],
                   },
                   {
                     $or: [
                       { $eq: ['$$notification.lastDmSentAt', null] },
-                      { $eq: ['$$notification.lastDmSentAt', undefined] },
+                      { $not: '$$notification.lastDmSentAt' },
                       {
                         $lt: [
                           '$$notification.lastDmSentAt',
@@ -563,14 +592,13 @@ export default class NotificationService extends Singleton {
                             $dateSubtract: {
                               startDate: now,
                               unit: 'day',
-                              amount: '$$notification.dmDayInterval',
+                              amount: { $ifNull: ['$$notification.dmDayInterval', 1] },
                             },
                           },
                         ],
                       },
                     ],
                   },
-                  { $lt: ['$$notification.expiresAt', now] },
                 ],
               },
             },
@@ -620,11 +648,11 @@ export default class NotificationService extends Singleton {
             $filter: {
               input: '$screenings',
               as: 's',
-              cond: { $gte: ['$$s.startTime', now.toDate()] },
+              cond: { $gte: ['$$s.startTime', now] },
             },
           },
         })
-        .match({ 'screenings.0': { $exists: true } })
+        .match({ 'futureScreenings.0': { $exists: true } })
         .project({
           _id: 1,
           title: 1,
@@ -660,18 +688,18 @@ export default class NotificationService extends Singleton {
       }
 
       for (const aggregatedUser of aggregatedUsers) {
-        await this.sendDm(aggregatedUser, aggregatedMovies);
-        await this.updateNotifications(
-          aggregatedUser._id,
-          aggregatedUser.notifications.map((notification) => notification._id),
-        );
+        const notificationIdsToUpdate = await this.sendDm(aggregatedUser, aggregatedMovies);
+
+        if (notificationIdsToUpdate.length === 0)
+          this.serviceLogger.info('No notifications to update');
+        else await this.updateNotifications(aggregatedUser._id, notificationIdsToUpdate);
       }
     } catch (err) {
       this.serviceLogger.error({ err }, 'Failed to execute job');
     }
   }
 
-  private async sendDm(user: AggregatedUser, movies: AggregatedMovie[]): Promise<void> {
+  private async sendDm(user: AggregatedUser, movies: AggregatedMovie[]): Promise<Types.ObjectId[]> {
     const loggerWithUserCtx = this.serviceLogger.child({
       jobType: JobType.Guild,
       userId: user.discordId,
@@ -695,10 +723,14 @@ export default class NotificationService extends Singleton {
       });
 
       loggerWithUserCtx.info('Searching movies for keyword matches');
-      const keywords = user.notifications.flatMap((notification) => ({
-        notificationName: notification.name,
-        ...notification.keywords,
-      }));
+      const keywords = user.notifications.flatMap((notification) =>
+        notification.keywords.map((keyword) => ({
+          type: keyword.type,
+          value: keyword.value,
+          notificationName: notification.name,
+          notificationId: notification._id,
+        })),
+      );
 
       for (const keyword of keywords) {
         const loggerWithKeywordCtx = loggerWithUserCtx.child({
@@ -751,7 +783,9 @@ export default class NotificationService extends Singleton {
             }
             break;
           default:
-            loggerWithKeywordCtx.warn('Encountered unknown keyword type, skipping');
+            loggerWithKeywordCtx.warn(
+              `Encountered unknown keyword type '${keyword.type as string}', skipping`,
+            );
             break;
         }
       }
@@ -759,7 +793,7 @@ export default class NotificationService extends Singleton {
       const matchedMovies = Object.values(matches);
       if (matchedMovies.length === 0) {
         loggerWithUserCtx.info('No matches for users notifications found, skipping');
-        return;
+        return [];
       }
 
       loggerWithUserCtx.info(`Found ${matchedMovies.length} matches in total, sending messages`);
@@ -779,8 +813,13 @@ export default class NotificationService extends Singleton {
           content: this.compileDmMessage(matchedMovie, user.locale, user.timezone),
         });
       }
+
+      return matchedMovies.flatMap((matchedMovie) =>
+        matchedMovie.keywords.flatMap((keyword) => keyword.notificationId),
+      );
     } catch (err) {
       loggerWithUserCtx.error({ err }, 'Failed to check user notifications');
+      return [];
     }
   }
 
@@ -795,7 +834,7 @@ export default class NotificationService extends Singleton {
       earliestScreening: dayjs
         .utc(matchedMovie.movie.screenings[0]?.startTime)
         .tz(timezone)
-        .format('YYYY-MM-DD HH:mm:ss Z'),
+        .format('YYYY-MM-DD HH:mm:ss'),
       screeningCommandName: movieScreeningsCommand.data.name,
       matchedNotifications: matchedMovie.keywords
         .map((keyword) => keyword.notificationName)
@@ -820,6 +859,7 @@ export default class NotificationService extends Singleton {
         { _id: userId },
         {
           $inc: { 'notifications.$[notification].sentDms': 1 },
+          $set: { 'notifications.$[notification].lastDmSentAt': dayjs().utc().toDate() },
         },
         {
           arrayFilters: [{ 'notification._id': { $in: notificationIds } }],
