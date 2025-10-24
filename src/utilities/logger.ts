@@ -9,6 +9,7 @@ const LOG_CONFIG: LoggerOptions = {
       ...bindings,
       environment: process.env.NODE_ENV ?? 'unknown',
       bun: Bun.version,
+      build: process.env.BUILD_VERSION,
     }),
     level: (label) => ({ level: label }),
   },

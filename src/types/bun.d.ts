@@ -1,5 +1,6 @@
 declare module 'bun' {
   interface Env {
+    BUILD_VERSION: string;
     LOG_LEVEL?: string;
     MONGODB_URI: string;
     WEB_SCRAPER_SERVICE_CRON: string;
