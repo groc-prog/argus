@@ -15,7 +15,7 @@ import { discordMessage, sendInteractionReply } from '../../../utilities/discord
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { MovieModel } from '../../../models/movie';
 import { isValidObjectId } from 'mongoose';
-import { I18N } from '../../../models/features';
+import { I18N } from '../../../constants';
 import { UserModel } from '../../../models/user';
 import dayjs from 'dayjs';
 

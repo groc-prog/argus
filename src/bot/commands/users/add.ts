@@ -124,7 +124,9 @@ export default {
     const validFeatures =
       featuresArr
         ?.map((feature) => {
-          const match = Object.entries(FEATURES).find((mapping) => mapping[1].has(feature));
+          const match = Object.entries(FEATURES).find((mapping) =>
+            mapping[1].has(feature.trim().toLowerCase()),
+          );
           if (!match) {
             // Remember omitted features so we can tell them to the user later on
             omittedFeatures.push(feature);

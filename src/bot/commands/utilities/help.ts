@@ -177,7 +177,7 @@ const replies = {
       ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
         `Create a notification by giving it a unique ${inlineCode('name')}`,
-        `Define one (or multiple) movie titles or features for which to look out for while checking movies. All available features can be viewed with the /${movieFeaturesCommand.data.name} command.`,
+        `Define one (or multiple) movie titles or features for which to look out for while checking movies. All available features can be viewed with the ${inlineCode(`/${movieFeaturesCommand.data.name}`)} command.`,
       ])}
 
       ${heading('How movie title and feature filtering works', HeadingLevel.Three)}
@@ -198,7 +198,7 @@ const replies = {
       ${heading('Du kannst diesen Befehl verwendet, um', HeadingLevel.Three)}
       ${unorderedList([
         `Eine Benachrichtigung zu erstellen, indem du ihr einen eindeutigen ${inlineCode('Namen')} gibst`,
-        `Einen oder mehrere Filmtitel oder Features festzulegen, nach denen beim Filmen gesucht werden soll. Alle verfügbaren Features können mit dem Befehl /${movieFeaturesCommand.data.name} angezeigt werden.`,
+        `Einen oder mehrere Filmtitel oder Features festzulegen, nach denen beim Filmen gesucht werden soll. Alle verfügbaren Features können mit dem Befehl ${inlineCode(`/${movieFeaturesCommand.data.name}`)} angezeigt werden.`,
       ])}
 
       ${heading('So funktioniert das Suchen nach Filmtiteln und Features', HeadingLevel.Three)}
