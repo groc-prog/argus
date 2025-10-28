@@ -3,13 +3,11 @@ import {
   ChatInputCommandInteraction,
   heading,
   inlineCode,
-  italic,
   Locale,
   MessageFlags,
-  quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { UserModel } from '../../../models/user';
 import { isValidObjectId, Types } from 'mongoose';
 import Fuse from 'fuse.js';
@@ -150,57 +148,33 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':ok_hand:  NOTIFICATION REMOVED  :ok_hand:')}
-      In a world where notifications rise and fall… one has quietly departed.
-
-      The notification ${inlineCode('{{{notificationName}}}')} has been successfully removed. The stage is cleared, and nothing lingers in its place.
-
-      ${quote(italic(`The phantom has vanished. The flow of notifications continues unimpeded.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':ok_hand:  Notification Removed  :ok_hand:')}
+      The notification ${inlineCode('{{{notificationName}}}')} has been successfully removed. The stage is clear.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':ok_hand:  BENACHRICHTIGUNG ENTFERNT  :ok_hand:')}
-      In einer Welt, in der Benachrichtigungen entstehen und vergehen… ist eine nun still verschwunden.
-
-      Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich entfernt. Die Bühne ist frei, und nichts bleibt an ihrem Platz.
-
-      ${quote(italic(`Der Geist ist verschwunden. Der Fluss der Benachrichtigungen setzt sich ungestört fort.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':ok_hand:  Benachrichtigung Entfernt  :ok_hand:')}
+      Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich entfernt. Die Bühne ist frei.
     `,
   },
   notificationNotFound: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':no_entry:  INVALID NOTIFICATION  :no_entry:')}
-      In a world where every signal must be real… some shadows cannot be touched.
-
-      The notification you are trying to remove does not exist or is invalid. Ensure you are referencing a valid notification.
-
-      ${quote(italic(`The stage cannot remove what is not there. Check your notification and try again.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':no_entry:  Invalid Notification  :no_entry:')}
+      The notification you are trying to remove does not exist or is invalid. Please check the name and try again.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':no_entry:  UNGÜLTIGE BENACHRICHTIGUNG  :no_entry:')}
-      In einer Welt, in der jedes Signal real sein muss… können manche Schatten nicht berührt werden.
-
-      Die Benachrichtigung, die du entfernen möchtest, existiert nicht oder ist ungültig. Stelle sicher, dass du eine gültige Benachrichtigung referenzierst.
-
-      ${quote(italic(`Die Bühne kann nicht entfernen, was nicht existiert. Überprüfe deine Benachrichtigung und versuche es erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':no_entry:  Ungültige Benachrichtigung  :no_entry:')}
+      Die Benachrichtigung, die du entfernen möchtest, existiert nicht oder ist ungültig. Bitte überprüfe den Namen und versuche es erneut.
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  NOTIFICATION REMOVAL FAILED  :bangbang:')}
-      In a world where notifications vanish like shadows… some stubborn phantoms linger.
-
-      The bot was unable to remove the notification. The forces of the universe interfered, and the request could not be completed.
-
-      ${quote(italic(`The stage cannot clear this notification. Please try again later.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Notification Removal Failed  :boom:')}
+      The bot was unable to remove the notification. Please try again later.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FEHLGESCHLAGENE BENACHRICHTIGUNGSENTFERNUNG  :bangbang:')}
-      In einer Welt, in der Benachrichtigungen wie Schatten verschwinden… verweilen manche hartnäckigen Geister.
-
-      Der Bot konnte die Benachrichtigung nicht entfernen. Die Kräfte des Universums haben sich eingemischt, und die Anfrage konnte nicht abgeschlossen werden.
-
-      ${quote(italic(`Die Bühne kann diese Benachrichtigung nicht löschen. Bitte versuche es später erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Fehlgeschlagene Benachrichtigungsentfernung  :boom:')}
+      Der Bot konnte die Benachrichtigung nicht entfernen. Bitte versuche es später erneut.
     `,
   },
 } as const;

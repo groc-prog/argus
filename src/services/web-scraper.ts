@@ -2,7 +2,7 @@ import puppeteer, { ElementHandle, Page } from 'puppeteer';
 import { Cron } from 'croner';
 import dayjs from 'dayjs';
 import { MovieModel, type Movie } from '../models/movie';
-import Singleton from './singleton';
+import Singleton from '../utilities/singleton';
 
 export default class WebScraperService extends Singleton {
   private cronSchedule = process.env.WEB_SCRAPER_SERVICE_CRON;
@@ -13,29 +13,28 @@ export default class WebScraperService extends Singleton {
     'div.movie-information-is-open div.movie-information div.movie-information-content-wrapper div.movie-content';
   private movieInfoSelector = `${this.baseMovieSelector} div.information-container div.information`;
 
-  static jobName = 'web-scraper';
-
   /**
    * Registers the service to run on the defined CRON schedule, which is taken from the `WEB_SCRAPER_SERVICE_CRON`
    * environment variable.
    * @async
    */
-  start(): void {
-    this.serviceLogger.info('Registering web scraper job');
+  run(): void {
+    this.serviceLogger.info(
+      `Registering web scraper job to run with schedule ${this.cronSchedule}`,
+    );
     this.job = new Cron(
       this.cronSchedule,
       {
-        name: WebScraperService.jobName,
+        name: 'web-scraper',
         protect: true,
         catch: (err, executedJob) => {
           const nextSchedulesInMs = executedJob.msToNext();
           this.serviceLogger.error(
             {
               err,
-              job: executedJob.name,
               nextScheduleAt: nextSchedulesInMs ? dayjs().add(nextSchedulesInMs, 'ms') : 'unknown',
             },
-            'Job error during web scraper execution',
+            'Error during web scraper execution',
           );
         },
       },
@@ -49,31 +48,35 @@ export default class WebScraperService extends Singleton {
     const scrapedMovies: Movie[] = [];
 
     if (!this.job || !this.job.name) {
-      this.serviceLogger.error(
+      this.serviceLogger.warn(
         { service: this.constructor.name },
-        'Service not initialized yet, can not run job',
+        'Service not initialized yet, aborting job run',
       );
       return;
     }
 
-    const loggerWithCtx = this.serviceLogger.child({ job: this.job.name });
-    loggerWithCtx.info('Starting scheduled job');
+    this.serviceLogger.info('Launching new Puppeteer browser');
     const browser = await puppeteer.launch();
 
     try {
-      loggerWithCtx.debug({ baseUrl: this.baseUrl }, 'Navigating to URL and getting page ready');
+      this.serviceLogger.debug(
+        { baseUrl: this.baseUrl },
+        'Navigating to URL and initializing page',
+      );
       const page = await browser.newPage();
       await page.goto(this.baseUrl);
       await page.setViewport({ width: 1080, height: 1024 });
-      loggerWithCtx.debug('Page navigation and setup done, ready to extract data');
+      this.serviceLogger.debug('Page navigation and setup done, ready to extract data');
 
       const movieWrappers = await page.$$('div.poster-info');
       if (movieWrappers.length === 0) {
-        loggerWithCtx.warn('No movie wrappers found, no data to extract');
+        this.serviceLogger.warn(
+          'No movie wrappers found, no data to extract. This might indicate changes in the scraped data',
+        );
         return;
       }
 
-      loggerWithCtx.info(`Found ${movieWrappers.length} movie wrapper elements`);
+      this.serviceLogger.info(`Found ${movieWrappers.length} movie wrapper elements`);
       for (const movieWrapper of movieWrappers) {
         const extractedData = await this.extractMovieContents(page, movieWrapper);
         if (!extractedData) continue;
@@ -81,10 +84,10 @@ export default class WebScraperService extends Singleton {
         scrapedMovies.push(extractedData);
       }
 
-      loggerWithCtx.info('Extracted data successfully, storing data to database');
+      this.serviceLogger.info('Extracted data successfully, storing data to database');
       await this.storeMovieData(scrapedMovies);
     } catch (err) {
-      loggerWithCtx.error(
+      this.serviceLogger.error(
         { err, job: this.job.name },
         'Error during job execution, aborting job run',
       );
@@ -93,8 +96,6 @@ export default class WebScraperService extends Singleton {
   }
 
   private async storeMovieData(movies: Movie[]): Promise<void> {
-    const loggerWithCtx = this.serviceLogger.child({ job: this.job?.name });
-
     const operations = movies.map((movieData) =>
       MovieModel.findOneAndUpdate(
         { title: movieData.title },
@@ -112,27 +113,27 @@ export default class WebScraperService extends Singleton {
       { $set: { screenings: [] } },
     );
 
-    loggerWithCtx.debug(`Running ${operations.length} operations concurrently`);
+    this.serviceLogger.info(
+      `Running ${operations.length} operations to updating movie data concurrently`,
+    );
     await Promise.all([...operations, removeOldScreeningsOperation]);
-    loggerWithCtx.info('Scheduled job finished');
+    this.serviceLogger.info('Scheduled job finished');
   }
 
   private async extractMovieContents(
     page: Page,
     element: ElementHandle<HTMLDivElement>,
   ): Promise<Movie | null> {
-    const loggerWithCtx = this.serviceLogger.child({ job: this.job?.name });
-
     try {
       const extractedMovieData: Partial<Movie> = {};
 
-      loggerWithCtx.info(`Extracting data from movie wrapper element ${element.toString()}`);
-      loggerWithCtx.debug('Triggering click event to expand movie contents');
+      this.serviceLogger.info('Extracting data from movie wrapper element');
+      this.serviceLogger.debug('Triggering click event to expand movie contents');
       await page.evaluate((el) => {
         el.click();
       }, element);
 
-      loggerWithCtx.debug(`Waiting for movie content to render`);
+      this.serviceLogger.debug(`Waiting for movie content to render`);
       await page.waitForSelector(
         `${this.baseMovieSelector} div.information-container div.information`,
         {
@@ -140,13 +141,15 @@ export default class WebScraperService extends Singleton {
         },
       );
 
-      loggerWithCtx.debug('Trying to extract title');
+      this.serviceLogger.debug('Trying to extract title');
       extractedMovieData.title = await page.$eval(
         `${this.baseMovieSelector} div.title h2`,
         (el) => el.innerText,
       );
 
-      loggerWithCtx.debug('Checking if description contains a button to expand full description');
+      this.serviceLogger.debug(
+        'Checking if description contains a button to expand full description',
+      );
       const expandButton = await page.$(
         `${this.movieInfoSelector} div.description > button.show-more-or-less-button`,
       );
@@ -155,38 +158,40 @@ export default class WebScraperService extends Singleton {
       // button to render the whole text
       let descriptionElement: ElementHandle<HTMLDivElement | HTMLSpanElement> | null = null;
       if (expandButton) {
-        loggerWithCtx.debug('Found expand button, trigger click event to expand full description');
+        this.serviceLogger.debug(
+          'Found expand button, trigger click event to expand full description',
+        );
         await page.evaluate((element) => {
           element.click();
         }, expandButton);
 
         descriptionElement = await page.$(`${this.movieInfoSelector} div.description span`);
       } else {
-        loggerWithCtx.debug(
+        this.serviceLogger.debug(
           'No expand button found, attempting to get description element directly',
         );
         descriptionElement = await page.$(`${this.movieInfoSelector} div.description`);
       }
 
       if (descriptionElement) {
-        loggerWithCtx.debug('Trying to extract description');
+        this.serviceLogger.debug('Trying to extract description');
         extractedMovieData.description = await descriptionElement.evaluate((el) => el.innerText);
-      } else loggerWithCtx.debug('No description found');
+      } else this.serviceLogger.debug('No description found');
 
       const ageRatingElement = await page.$(
         `${this.movieInfoSelector} div.more div.info-bundle div.fsk-length-wrapper p.fsk-label span.fsk-text`,
       );
       if (ageRatingElement) {
-        loggerWithCtx.debug('Trying to extract age rating');
+        this.serviceLogger.debug('Trying to extract age rating');
         extractedMovieData.ageRating =
           (await ageRatingElement.evaluate((el) => el.getAttribute('data-fsk'))) ?? undefined;
-      } else loggerWithCtx.debug('No age rating found');
+      } else this.serviceLogger.debug('No age rating found');
 
       const durationElement = await page.$(
         `${this.movieInfoSelector} div.more div.info-bundle div.fsk-length-wrapper div.length span.minutes`,
       );
       if (durationElement) {
-        loggerWithCtx.debug('Trying to extract duration');
+        this.serviceLogger.debug('Trying to extract duration');
         extractedMovieData.durationMinutes = await durationElement.evaluate((el) => {
           // The duration is defined as `x Minuten`, but we only want to store the number value to
           // be able to query the data easier
@@ -196,13 +201,13 @@ export default class WebScraperService extends Singleton {
           const numeric = Number(result[0]);
           return Number.isNaN(numeric) ? undefined : numeric;
         });
-      } else loggerWithCtx.debug('No duration found');
+      } else this.serviceLogger.debug('No duration found');
 
       const genresElement = await page.$(
         `${this.movieInfoSelector} div.more div.info-bundle p.genres`,
       );
       if (genresElement) {
-        loggerWithCtx.debug('Trying to extract genres');
+        this.serviceLogger.debug('Trying to extract genres');
         extractedMovieData.genres = await genresElement.evaluate((el) => {
           // <p> tag has a span nested inside it, so we can not just use the innerText property
           const genresAsString = Array.from(el.childNodes)
@@ -212,16 +217,16 @@ export default class WebScraperService extends Singleton {
 
           return genresAsString.split(',').map((genre) => genre.trim());
         });
-      } else loggerWithCtx.debug('No genres found');
-      loggerWithCtx.info('Base movie data extracted successfully');
+      } else this.serviceLogger.debug('No genres found');
+      this.serviceLogger.info('Base movie data extracted successfully');
 
       const screeningWrappers = await page.$$(
         `${this.baseMovieSelector} div.movie-times-wrapper div.movie-times div.movie-times-item`,
       );
       if (screeningWrappers.length === 0)
-        loggerWithCtx.info('No screening wrappers found, no data to extract');
+        this.serviceLogger.info('No screening wrappers found, no data to extract');
 
-      loggerWithCtx.info(`Found ${screeningWrappers.length} screening wrapper elements`);
+      this.serviceLogger.info(`Found ${screeningWrappers.length} screening wrapper elements`);
       for (const screeningWrapper of screeningWrappers) {
         const extractedScreeningData = await this.extractScreeningContents(screeningWrapper);
         if (!extractedScreeningData) continue;
@@ -233,10 +238,7 @@ export default class WebScraperService extends Singleton {
 
       return extractedMovieData as Movie;
     } catch (err) {
-      loggerWithCtx.error(
-        { err, element: element.toString() },
-        'Error during movie data extraction, skipping movie',
-      );
+      this.serviceLogger.error({ err }, 'Error during movie data extraction, skipping movie');
       return null;
     }
   }
@@ -244,32 +246,29 @@ export default class WebScraperService extends Singleton {
   private async extractScreeningContents(
     screeningElement: ElementHandle<HTMLDivElement>,
   ): Promise<Movie['screenings'] | null> {
-    const loggerWithCtx = this.serviceLogger.child({ job: this.job?.name });
     const extractedScreeningData = [] as unknown as Movie['screenings'];
 
     try {
-      loggerWithCtx.info(
-        `Extracting data from screening wrapper element ${screeningElement.toString()}`,
-      );
-      loggerWithCtx.debug('Trying to extract screening date');
+      this.serviceLogger.info('Extracting data from screening wrapper element');
+      this.serviceLogger.debug('Trying to extract screening date');
       const screeningDate = await screeningElement.$eval('div.date', (el) => el.innerText);
 
-      loggerWithCtx.debug('Trying to extract show wrappers');
+      this.serviceLogger.debug('Trying to extract show wrappers');
       const showWrappers = await screeningElement.$$('div.showtime-container div.show-wrapper');
 
-      loggerWithCtx.info(`Found ${showWrappers.length} show wrapper elements`);
+      this.serviceLogger.info(`Found ${showWrappers.length} show wrapper elements`);
       for (const showElement of showWrappers) {
-        loggerWithCtx.info(`Extracting data from show wrapper element ${showElement.toString()}`);
-        loggerWithCtx.debug('Trying to extract start time');
+        this.serviceLogger.info('Extracting data from show wrapper element');
+        this.serviceLogger.debug('Trying to extract start time');
         const startTimeString = await showElement.$eval('span.showtime', (el) => el.innerText);
 
-        loggerWithCtx.debug('Trying to extract auditorium');
+        this.serviceLogger.debug('Trying to extract auditorium');
         const auditorium = await screeningElement.$eval(
           'div.performance-attributes span.theatre-name',
           (el) => el.innerText,
         );
 
-        loggerWithCtx.debug('Trying to extract show features');
+        this.serviceLogger.debug('Trying to extract show features');
         const showFeatures = await showElement.$$eval(
           'div.performance-attributes div.attribute span',
           (els) =>
@@ -287,10 +286,7 @@ export default class WebScraperService extends Singleton {
 
       return extractedScreeningData;
     } catch (err) {
-      loggerWithCtx.error(
-        { err, element: screeningElement.toString() },
-        'Error during element extraction, skipping element',
-      );
+      this.serviceLogger.error({ err }, 'Error during element extraction, skipping element');
       return null;
     }
   }

@@ -30,9 +30,9 @@ logger.info('Connecting to MongoDB');
 await mongoose.connect(process.env.MONGODB_URI);
 
 const webScraperService = WebScraperService.getInstance();
-webScraperService.start();
+webScraperService.run();
 
 const notificationService = NotificationService.getInstance();
-await notificationService.start();
+await notificationService.run();
 
 await initializeDiscordClient();

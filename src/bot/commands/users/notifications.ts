@@ -4,15 +4,13 @@ import {
   heading,
   HeadingLevel,
   inlineCode,
-  italic,
   Locale,
   MessageFlags,
-  quote,
   SlashCommandBuilder,
   unorderedList,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { KeywordType, UserModel } from '../../../models/user';
 import dayjs from 'dayjs';
 
@@ -20,10 +18,25 @@ export default {
   data: new SlashCommandBuilder()
     .setName('notifications')
     .setDescription('A complete list of all your notifications.')
-    .setDescriptionLocalization(Locale.German, 'Eine Liste aller Benachrichtigungen.'),
+    .setDescriptionLocalization(Locale.German, 'Eine Liste aller Benachrichtigungen.')
+    .addNumberOption((option) =>
+      option
+        .setName('page')
+        .setNameLocalization(Locale.German, 'seite')
+        .setDescription('The page to get. Defaults to 1.')
+        .setDescriptionLocalization(
+          Locale.German,
+          'Die Seite, die angezeigt werden soll. Verwendet 1 wenn nicht definiert.',
+        )
+        .setMinValue(1),
+    ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     const loggerWithCtx = getLoggerWithCtx(interaction);
+    const page = interaction.options.getNumber('page');
+
+    const usedPage = (page ?? 1) - 1;
+    const pageSize = 10;
 
     try {
       loggerWithCtx.info('Getting notifications');
@@ -37,11 +50,11 @@ export default {
           'notifications.deactivatedAt': 1,
           'notifications.lastDmSentAt': 1,
           'notifications.expiresAt': 1,
-          'notifications.dmDayInterval': 1,
+          'notifications.cooldown': 1,
         },
       );
 
-      if (!user) {
+      if (!user || user.notifications.length === 0) {
         loggerWithCtx.info('No notifications found for user');
         await sendInteractionReply(interaction, replies.noNotifications, {
           interaction: {
@@ -51,26 +64,38 @@ export default {
         return;
       }
 
-      loggerWithCtx.debug(
+      loggerWithCtx.info(
         `Found ${user.notifications.length} notifications, preparing template data`,
       );
-      const templateData = user.notifications.map((entry) => ({
-        name: entry.name,
-        sentDms: entry.sentDms ?? 0,
-        maxDms: entry.maxDms,
-        lastSent: entry.lastDmSentAt
-          ? dayjs(entry.lastDmSentAt).format('YYYY-MM-DD HH:mm:ss')
-          : null,
-        expiresAt: entry.expiresAt ? dayjs(entry.expiresAt).format('YYYY-MM-DD') : null,
-        intervalDays: entry.dmDayInterval,
-        deactivated: !!entry.deactivatedAt,
-        keywords: entry.keywords
-          .map((keyword) => ({
-            isTitleType: keyword.type === KeywordType.MovieTitle,
-            value: keyword.value,
-          }))
-          .sort((a) => (a.isTitleType ? -1 : 1)),
-      }));
+      const templateData = user.notifications
+        .map((entry) => ({
+          name: entry.name,
+          sentDms: entry.sentDms ?? 0,
+          maxDms: entry.maxDms,
+          lastSent: entry.lastDmSentAt
+            ? dayjs(entry.lastDmSentAt).format('YYYY-MM-DD HH:mm:ss')
+            : null,
+          expiresAt: entry.expiresAt ? dayjs(entry.expiresAt).format('YYYY-MM-DD') : null,
+          intervalDays: entry.cooldown,
+          deactivated: !!entry.deactivatedAt,
+          keywords: entry.keywords
+            .map((keyword) => ({
+              isTitleType: keyword.type === KeywordType.MovieTitle,
+              value: keyword.value,
+            }))
+            .sort((a) => (a.isTitleType ? -1 : 1)),
+        }))
+        .slice(usedPage * pageSize, pageSize)
+        .sort((notification) => (notification.deactivated ? 1 : -1));
+
+      if (templateData.length === 0) {
+        await sendInteractionReply(interaction, replies.noNotificationsForPage, {
+          interaction: {
+            flags: MessageFlags.Ephemeral,
+          },
+        });
+        return;
+      }
 
       await sendInteractionReply(interaction, replies.success, {
         template: {
@@ -93,81 +118,67 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':popcorn:  YOUR NOTIFICATIONS  :popcorn:')}
-      In a world where messages travel like clockwork… your notifications stand ready.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':popcorn:  Your Notifications  :popcorn:')}
+      Your notifications are queued and ready.
       {{#entries}}
-        ${heading('{{{name}}}  {{#deactivated}}:no_bell:{{/deactivated}}', HeadingLevel.Two)}
+        ${heading('{{#deactivated}}:no_bell:{{/deactivated}}{{^deactivated}}:mega:{{/deactivated}}  {{{name}}}', HeadingLevel.Two)}
 
-        ${bold('Keywords')}:
-        {{#keywords}}
-          ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Title){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
-        {{/keywords}}
         ${bold('Sent')}: ${inlineCode('{{#sentDms}}{{{sentDms}}}{{/sentDms}}{{^sentDms}}0{{/sentDms}}/{{#maxDms}}{{{maxDms}}}{{/maxDms}}{{^maxDms}}∞{{/maxDms}}')}
         ${bold('Last Sent')}: ${inlineCode('{{#lastSent}}{{{lastSent}}}{{/lastSent}}{{^lastSent}}Never{{/lastSent}}')}
         ${bold('Expires At')}: ${inlineCode('{{#expiresAt}}{{{expiresAt}}}{{/expiresAt}}{{^expiresAt}}Never{{/expiresAt}}')}
         ${bold('Interval')}: ${inlineCode('{{{intervalDays}}} day(s)')}
-
-      {{/entries}}
-
-      ${quote(italic(`Each entry stands as a sentinel. Manage them wisely to shape the flow of notifications.`))}
-    `,
-    [Locale.German]: discordMessage`
-      ${heading(':popcorn:  DEINE BENACHRICHTIGUNGEN  :popcorn:')}
-      In einer Welt, in der Nachrichten wie Uhrwerke reisen… stehen deine Benachrichtigungen bereit.
-
-      {{#entries}}
-        ${heading('{{{name}}}  {{#deactivated}}:no_bell:{{/deactivated}}', HeadingLevel.Two)}
-
-        ${bold('Schlüsselwörter')}:
+        ${bold('Keywords')}:
         {{#keywords}}
-          ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Titel){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
+          ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Title){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
         {{/keywords}}
+      {{/entries}}
+    `,
+    [Locale.German]: chatMessage`
+      ${heading(':popcorn:  Deine Benachrichtigungen  :popcorn:')}
+      Deine Benachrichtigungen sind bereit.
+      {{#entries}}
+        ${heading('{{#deactivated}}:no_bell:{{/deactivated}}{{^deactivated}}:mega:{{/deactivated}}  {{{name}}}', HeadingLevel.Two)}
+
         ${bold('Gesendet')}: ${inlineCode('{{#sentDms}}{{{sentDms}}}{{/sentDms}}{{^sentDms}}0{{/sentDms}}/{{#maxDms}}{{{maxDms}}}{{/maxDms}}{{^maxDms}}∞{{/maxDms}}')}
         ${bold('Zuletzt gesendet')}: ${inlineCode('{{#lastSent}}{{{lastSent}}}{{/lastSent}}{{^lastSent}}Nie{{/lastSent}}')}
         ${bold('Läuft ab am')}: ${inlineCode('{{#expiresAt}}{{{expiresAt}}}{{/expiresAt}}{{^expiresAt}}Nie{{/expiresAt}}')}
         ${bold('Intervall')}: ${inlineCode('{{{intervalDays}}} Tag(e)')}
-
+        ${bold('Schlüsselwörter')}:
+        {{#keywords}}
+          ${unorderedList([inlineCode('{{{value}}} {{#isTitleType}}(Titel){{/isTitleType}}{{^isTitleType}}(Feature){{/isTitleType}}')])}
+        {{/keywords}}
       {{/entries}}
-
-      ${quote(italic(`Jeder Eintrag steht wie ein Wächter. Verwalte sie weise, um den Fluss der Benachrichtigungen zu gestalten.`))}
     `,
   },
   noNotifications: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':ghost:  NO NOTIFICATIONS FOUND  :ghost:')}
-      In a world where messages echo through time… your list stands silent.
-
-      There are currently no notifications to show. Not a whisper, not a trace — only the faint presence of possibilities yet to come.
-
-      ${quote(italic(`Like a ghost in an empty hall, no notifications linger here. Create one to bring life to the silence.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':ghost:  No Notifications Yet  :ghost:')}
+      You have no notifications at the moment. Create one to start receiving updates :tickets:
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':ghost:  KEINE BENACHRICHTIGUNGEN GEFUNDEN  :ghost:')}
-      In einer Welt, in der Nachrichten durch die Zeit hallen… bleibt deine Liste still.
-
-      Derzeit gibt es keine Benachrichtigungen anzuzeigen. Kein Flüstern, keine Spur — nur die leise Präsenz von Möglichkeiten, die noch kommen mögen.
-
-      ${quote(italic(`Wie ein Geist in einem leeren Saal verweilen hier keine Benachrichtigungen. Erstelle eine, um das Schweigen zu beleben.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':ghost:  Keine Benachrichtigungen  :ghost:')}
+      Momentan hast du keine Benachrichtigungen. Erstelle eine, um Updates zu erhalten :tickets:
+    `,
+  },
+  noNotificationsForPage: {
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':empty_nest:  No Notifications On This Page  :empty_nest:')}
+      This page does not contain any notifications. Create more to fill this page :tickets:
+    `,
+    [Locale.German]: chatMessage`
+      ${heading(':empty_nest:  Keine Benachrichtigungen Auf Dieser Seite  :empty_nest:')}
+      Momentan hast du keine Benachrichtigungen auf dieser Seite. Erstelle mehr, um auch diese Seite zu füllen :tickets:
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  NOTIFICATION LIST ERROR  :bangbang:')}
-      In a world where every alert should be accounted for… the scroll of messages remains sealed.
-
-      The bot was unable to retrieve your notifications. Something interfered with the request, and the list could not be delivered.
-
-      ${quote(italic(`Without the list, the story's next chapter stays hidden. Please try again later.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Notification List Error  :boom:')}
+      Couldn't fetch your notifications. Please try again shortly.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FEHLER BEIM ABRUF DER BENACHRICHTIGUNGEN  :bangbang:')}
-      In einer Welt, in der jede Warnung gezählt werden sollte… bleibt die Schriftrolle der Nachrichten verschlossen.
-
-      Der Bot konnte deine Benachrichtigungen nicht abrufen. Etwas hat die Anfrage gestört, und die Liste konnte nicht geliefert werden.
-
-      ${quote(italic(`Ohne die Liste bleibt das nächste Kapitel der Geschichte verborgen. Bitte versuche es später erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Fehler beim Abrufen  :boom:')}
+      Deine Benachrichtigungen konnten nicht abgerufen werden. Bitte versuche es gleich nochmal.
     `,
   },
 } as const;

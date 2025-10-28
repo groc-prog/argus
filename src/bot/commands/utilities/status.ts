@@ -10,7 +10,7 @@ import {
   SlashCommandBuilder,
   subtext,
 } from 'discord.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { BotConfigurationModel } from '../../../models/bot-configuration';
 import dayjs from 'dayjs';
@@ -32,7 +32,7 @@ export default {
     try {
       loggerWithCtx.info('Fetching bot configuration from database');
       const configuration = await BotConfigurationModel.findOne({ guildId: interaction.guildId });
-      if (!configuration || !configuration.broadcastChannelId) {
+      if (!configuration || !configuration.channelId) {
         loggerWithCtx.info('No bot configuration found for guild');
         await sendInteractionReply(interaction, replies.success, {
           template: {
@@ -43,18 +43,18 @@ export default {
         return;
       }
 
-      const broadcastChannel = await configuration.resolveBroadcastChannel();
+      const guildNotificationChannel = await configuration.resolveGuildNotificationChannel();
       const user = await configuration.resolveLastModifiedUser();
 
       await sendInteractionReply(interaction, replies.success, {
         template: {
           latency: dayjs().diff(dayjs(interaction.createdAt), 'ms'),
           setupFinished: true,
-          broadcastChannel: broadcastChannel?.name,
-          broadcastSchedule: configuration.broadcastCronSchedule,
+          guildNotificationChannel: guildNotificationChannel?.name,
+          guildNotificationSchedule: configuration.guildNotificationsCronSchedule,
           lastModifiedBy: user.displayName,
           setupCommand: setupCommand.data.name,
-          broadcastsEnabled: !configuration.broadcastsDisabled,
+          guildNotificationsEnabled: !configuration.guildNotificationsDisabled,
           timezone: configuration.timezone,
         },
       });
@@ -71,73 +71,75 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':loudspeaker:  SYSTEM STATUS REPORT  :loudspeaker:')}
-      In a world where milliseconds matter, this bot answers the call…
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':clapper:  Status Check-In  :clapper:')}
+      Hey there! Just did a quick systems check — here\'s what\'s up :point_down:
 
       ${bold('Latency')}:  ${inlineCode('{{{latency}}} ms')}
       ${bold('Setup Status')}:  ${inlineCode('{{#setupFinished}}DONE{{/setupFinished}}{{^setupFinished}}PENDING{{/setupFinished}}')}
-      ${bold('Broadcast Channel')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NOT CONFIGURED{{/broadcastChannel}}')}
-      ${bold('Broadcast Schedule')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NOT CONFIGURED{{/broadcastSchedule}}')}
-      ${bold('Broadcasts Enabled')}:  ${inlineCode('{{#broadcastsEnabled}}YES{{/broadcastsEnabled}}{{^broadcastsEnabled}}NO{{/broadcastsEnabled}}')}
+      ${bold('Channel')}:  ${inlineCode('{{#guildNotificationChannel}}{{{guildNotificationChannel}}}{{/guildNotificationChannel}}{{^guildNotificationChannel}}NOT CONFIGURED{{/guildNotificationChannel}}')}
+      ${bold('Schedule')}:  ${inlineCode('{{#guildNotificationSchedule}}{{{guildNotificationSchedule}}}{{/guildNotificationSchedule}}{{^guildNotificationSchedule}}NOT CONFIGURED{{/guildNotificationSchedule}}')}
+      ${bold('Guild Notifications Enabled')}:  ${inlineCode('{{#guildNotificationsEnabled}}YES{{/guildNotificationsEnabled}}{{^guildNotificationsEnabled}}NO{{/guildNotificationsEnabled}}')}
       ${bold('Timezone')}:  ${inlineCode('{{{timezone}}}')}
+
       {{#lastModifiedBy}}
-        ${subtext(`Configured by:  ${inlineCode('{{{lastModifiedBy}}}')}`)}
+        ${subtext(`(Last tweaked by ${inlineCode('{{{lastModifiedBy}}}')})`)}
       {{/lastModifiedBy}}
 
       {{#setupFinished}}
-        ${quote(italic('The connection is strong. The show goes on without delay.'))}
+        ${quote(italic(":tada: Everything's running smooth! We're good to roll — no lag on the red carpet."))}
       {{/setupFinished}}
       {{^setupFinished}}
-        ${quote(italic(`The stage is dark. Configure the bot with ${inlineCode('/{{{setupCommand}}}')} to bring the show to life.`))}
+        ${quote(italic(`:hourglass_flowing_sand: Almost ready! Use ${inlineCode('/{{{setupCommand}}}')} to finish setup so we can start showing off those movies! :popcorn:`))}
       {{/setupFinished}}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':loudspeaker:  SYSTEMSTATUSBERICHT  :loudspeaker:')}
-      In einer Welt, in der jede Millisekunden zählt, antwortet dieser Bot seiner Bestimmung…
+    [Locale.German]: chatMessage`
+      ${heading(':clapper:  Statuscheck  :clapper:')}
+      Hey! Ich hab kurz nachgesehen, wie\'s dem Bot geht — hier sind die Details :point_down:
 
       ${bold('Latenz')}:  ${inlineCode('{{{latency}}} ms')}
       ${bold('Setup-Status')}:  ${inlineCode('{{#setupFinished}}ERLEDIGT{{/setupFinished}}{{^setupFinished}}AUSSTEHEND{{/setupFinished}}')}
-      ${bold('Broadcast-Kanal')}:  ${inlineCode('{{#broadcastChannel}}{{{broadcastChannel}}}{{/broadcastChannel}}{{^broadcastChannel}}NICHT KONFIGURIERT{{/broadcastChannel}}')}
-      ${bold('Broadcast-Zeitplan')}:  ${inlineCode('{{#broadcastSchedule}}{{{broadcastSchedule}}}{{/broadcastSchedule}}{{^broadcastSchedule}}NICHT KONFIGURIERT{{/broadcastSchedule}}')}
-      ${bold('Broadcasts Aktiviert')}:  ${inlineCode('{{#broadcastsEnabled}}JA{{/broadcastsEnabled}}{{^broadcastsEnabled}}NEIN{{/broadcastsEnabled}}')}
+      ${bold('Kanal')}:  ${inlineCode('{{#guildNotificationChannel}}{{{guildNotificationChannel}}}{{/guildNotificationChannel}}{{^guildNotificationChannel}}NICHT KONFIGURIERT{{/guildNotificationChannel}}')}
+      ${bold('Zeitplan')}:  ${inlineCode('{{#guildNotificationSchedule}}{{{guildNotificationSchedule}}}{{/guildNotificationSchedule}}{{^guildNotificationSchedule}}NICHT KONFIGURIERT{{/guildNotificationSchedule}}')}
+      ${bold('Server-Benachrichtigungen Aktiviert')}:  ${inlineCode('{{#guildNotificationsEnabled}}JA{{/guildNotificationsEnabled}}{{^guildNotificationsEnabled}}NEIN{{/guildNotificationsEnabled}}')}
       ${bold('Zeitzone')}:  ${inlineCode('{{{timezone}}}')}
+
       {{#lastModifiedBy}}
-        ${subtext('Konfiguriert von')}:  ${inlineCode('{{{lastModifiedBy}}}')}
+        ${subtext(`(Zuletzt geändert von ${inlineCode('{{{lastModifiedBy}}}')})`)}
       {{/lastModifiedBy}}
 
       {{#setupFinished}}
-        ${quote(italic('Die Verbindung ist stark. Die Show geht ohne Verzögerung weiter.'))}
+        ${quote(italic(':tada: Alles läuft rund! Bereit für die nächste Filmvorstellung.'))}
       {{/setupFinished}}
       {{^setupFinished}}
-        ${quote(italic(`Die Bühne ist dunkel. Verwende ${inlineCode('/{{{setupCommand}}}')}, um die Show zum Leben zu erwecken.`))}
+        ${quote(italic(`:hourglass_flowing_sand: Fast fertig! Verwende ${inlineCode('/{{{setupCommand}}}')}, um die Einrichtung abzuschließen. Dann geht's richtig los! :popcorn:`))}
       {{/setupFinished}}
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':loudspeaker:  SYSTEM STATUS REPORT  :loudspeaker:')}
-      In a world where configuration is incomplete… one server awaits a hero.
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':clapper:  Status Check-In  :clapper:')}
+      Uh oh :scream_cat: looks like something went off-script while checking the system.
 
       ${bold('Latency')}:  ${inlineCode('{{{latency}}} ms')}
       ${bold('Setup Status')}:  ${inlineCode('(no response)')}
-      ${bold('Broadcast Channel')}:  ${inlineCode('(no response)')}
-      ${bold('Broadcast Schedule')}:  ${inlineCode('(no response)')}
+      ${bold('Channel')}:  ${inlineCode('(no response)')}
+      ${bold('Schedule')}:  ${inlineCode('(no response)')}
       ${bold('Timezone')}:  ${inlineCode('(no response)')}
 
-      ${quote(italic(`The lights went out, the show is over. The bot ran into a issue, please try again later.`))}
+      ${quote(italic(':rotating_light: The bot hit a snag! Give it a bit and try again — the show must go on soon.'))}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':loudspeaker:  SYSTEMSTATUSBERICHT  :loudspeaker:')}
-      In einer Welt, in der die Konfiguration unvollständig ist… wartet ein Server auf einen Helden.
+    [Locale.German]: chatMessage`
+      ${heading(':clapper:  Statuscheck  :clapper:')}
+      Oops :scream_cat: beim Systemcheck ist wohl was schiefgelaufen.
 
       ${bold('Latenz')}:  ${inlineCode('{{{latency}}} ms')}
       ${bold('Setup-Status')}:  ${inlineCode('(keine Antwort)')}
-      ${bold('Broadcast-Kanal')}:  ${inlineCode('(keine Antwort)')}
-      ${bold('Broadcast-Zeitplan')}:  ${inlineCode('(keine Antwort)')}
+      ${bold('Kanal')}:  ${inlineCode('(keine Antwort)')}
+      ${bold('Zeitplan')}:  ${inlineCode('(keine Antwort)')}
       ${bold('Zeitzone')}:  ${inlineCode('(keine Antwort)')}
 
-      ${quote(italic(`Lichter aus, die Show ist vorbei. Der Bot hatte ein Problem, bitte versuche es später erneut.`))}
+      ${quote(italic(":rotating_light: Der Bot hatte ein kleines Problem! Warte kurz und versuch's dann nochmal — die Show geht bald weiter."))}
     `,
   },
 } as const;

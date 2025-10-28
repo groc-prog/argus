@@ -9,7 +9,7 @@ import {
   SlashCommandBuilder,
   unorderedList,
 } from 'discord.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { I18N } from '../../../constants';
 
 export default {
@@ -39,25 +39,25 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':sparkles:  KNOWN FEATURES  :sparkles:')}
-      In a world where every movie shines for a reason… these are the traits that define them.
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':popcorn:  Movie Features  :popcorn:')}
+      Hey hey! Wanna know all the cool stuff I can notify you about? Look at these babies.
 
       {{#features}}
         ${unorderedList([inlineCode('{{{.}}}')])}
       {{/features}}
 
-      ${quote(italic(`Each feature tells its own story — combine them wisely to craft your perfect notifications.`))}
+      ${quote(italic(`Each of these is like a little hint for making your notifications just right`))}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':sparkles:  BEKANNTE FEATURES  :sparkles:')}
-      In einer Welt, in der jeder Film aus einem besonderen Grund leuchtet… sind dies die Merkmale, die ihn definieren.
+    [Locale.German]: chatMessage`
+      ${heading(':popcorn:  Schlüsselwörter  :popcorn:')}
+      Hey, hey! Willst du wissen, über welche coolen Sachen ich dich informieren kann? Schau dir diese Schnapper an.
 
       {{#features}}
         ${unorderedList([inlineCode('{{{.}}}')])}
       {{/features}}
 
-      ${quote(italic(`Jedes Feature erzählt seine eigene Geschichte — kombiniere sie weise, um deine perfekten Benachrichtigungen zu gestalten.`))}
+      ${quote(italic(`Jedes davon ist wie ein kleiner Tipp, damit deine Benachrichtigungen richtig nice werden`))}
     `,
   },
 } as const;

@@ -59,8 +59,8 @@ const notificationSchema = new mongoose.Schema(
     },
     /** UTC timestamp of when the entry was deactivated. */
     deactivatedAt: mongoose.SchemaTypes.Date,
-    /** The interval (in days) in which a DM is sent. */
-    dmDayInterval: {
+    /** The duration (in days) until another DM can be sent. */
+    cooldown: {
       type: mongoose.SchemaTypes.Number,
       min: 0,
       default: 1,

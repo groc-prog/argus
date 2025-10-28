@@ -1,4 +1,4 @@
-import logger from '../utilities/logger';
+import logger from './logger';
 
 export default abstract class Singleton {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type

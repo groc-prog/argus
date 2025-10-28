@@ -89,7 +89,7 @@ export async function initializeDiscordClient(): Promise<void> {
 
     if (process.env.NODE_ENV === 'development') {
       if (!process.env.DISCORD_TEST_GUILD_ID) {
-        logger.fatal('Running in development mode, but did not find test guild ID in environment');
+        logger.error('Running in development mode, but did not find test guild ID in environment');
         process.exit(1);
       }
 
