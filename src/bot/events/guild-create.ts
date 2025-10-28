@@ -23,13 +23,13 @@ export default {
       }
 
       // Try to get a system channel by default
-      loggerWithCtx.debug('Checking for system channel with sufficient permissions');
+      loggerWithCtx.info('Checking for system channel with sufficient permissions');
       const systemChannel = await guild.systemChannel?.fetch();
       if (
         systemChannel &&
         systemChannel.permissionsFor(botAsMember).has(PermissionFlagsBits.SendMessages)
       ) {
-        loggerWithCtx.debug(
+        loggerWithCtx.info(
           { channelId: systemChannel.id },
           'Found system channel with sufficient permissions, setting as default',
         );
@@ -43,13 +43,13 @@ export default {
 
       // If there are no system channels we can access, we will just use the first channel we have
       // access to
-      loggerWithCtx.debug(
+      loggerWithCtx.info(
         'No available system channel found, checking for other channels with sufficient permissions',
       );
       const guildChannels = await guild.channels.fetch();
-      const availableChannel = guildChannels.find(BotConfigurationModel.isValidBroadcastChannel);
+      const availableChannel = guildChannels.find(BotConfigurationModel.isValidChannel);
       if (availableChannel) {
-        loggerWithCtx.debug(
+        loggerWithCtx.info(
           { channelId: availableChannel.id },
           'Found channel with sufficient permissions, setting as default',
         );

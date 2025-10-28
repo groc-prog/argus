@@ -6,7 +6,6 @@ import {
   HeadingLevel,
   hyperlink,
   inlineCode,
-  italic,
   Locale,
   MessageFlags,
   quote,
@@ -24,7 +23,7 @@ import reactivateNotificationCommand from '../users/reactivate';
 import movieFeaturesCommand from '../movies/features';
 import movieDetailsCommand from '../movies/details';
 import movieScreeningsCommand from '../movies/screenings';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import Fuse from 'fuse.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 
@@ -95,142 +94,125 @@ export default {
 
 const replies = {
   [statusCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  STATUS GUIDE  :information_source:')}
-      ${bold('Command')}:  ${inlineCode(`/${statusCommand.data.name}`)}
-      ${bold('Purpose')}:  ${inlineCode('Show the current system status and setup of the bot')}
+    [Locale.EnglishUS]: chatMessage`
+    ${heading(':beginner:  Bot Status  :beginner:')}
+    ${bold('Command')}:  ${inlineCode(`/${statusCommand.data.name}`)}
+    ${bold('Purpose')}:  ${inlineCode('Show the current system status and setup of the bot')}
 
-      ${heading('Use this command to', HeadingLevel.Three)}
-      ${unorderedList([
-        `Check the current ${inlineCode('latency')} between the bot and Discord.`,
-        `See whether the bot setup has been completed or is still ${inlineCode('pending')}.`,
-        `View the currently configured ${inlineCode('broadcast channel')} for guild notifications.`,
-        `View the ${inlineCode('broadcast schedule')} the bot is using (if configured).`,
-        `Find out who last modified the bot configuration.`,
-      ])}
+    ${heading('Use this command to', HeadingLevel.Three)}
+    ${unorderedList([
+      `Check the current ${inlineCode('latency')} between the bot and Discord.`,
+      `See whether the bot setup has been completed or is still ${inlineCode('pending')}.`,
+      `View the currently configured ${inlineCode('channel')} for guild notifications.`,
+      `View the ${inlineCode('schedule')} the bot is using for guild notifications (if configured).`,
+      `Find out who last modified the bot configuration.`,
+    ])}
 
-      If setup has not been completed, you'll see a message guiding you to run the ${inlineCode(`/${setupCommand.data.name}`)} command.
+    ${quote(`If setup has not been completed, you'll see a note telling you to run ${inlineCode(`/${setupCommand.data.name}`)}.`)}
+  `,
+    [Locale.German]: chatMessage`
+    ${heading(':beginner:  Bot-Status  :beginner:')}
+    ${bold('Befehl')}:  ${inlineCode(`/${statusCommand.data.name}`)}
+    ${bold('Zweck')}:  ${inlineCode('Zeigt den aktuellen Systemstatus und Setup-Status des Bots an')}
 
-      ${quote(italic("Use this command whenever you're unsure if the bot is ready to broadcast or if something looks off."))}
-    `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  STATUS-GUIDE  :information_source:')}
-      ${bold('Befehl')}:  ${inlineCode(`/${statusCommand.data.name}`)}
-      ${bold('Zweck')}:  ${inlineCode('Zeigt den aktuellen Systemstatus und Setup-Status des Bots an')}
+    ${heading('Du kannst diesen Befehl verwenden, um', HeadingLevel.Three)}
+    ${unorderedList([
+      `Die aktuelle ${inlineCode('Latenz')} zwischen Bot und Discord abzufragen.`,
+      `Zu sehen, ob das Setup des Bots abgeschlossen ist oder noch ${inlineCode('ausstehend')} ist.`,
+      `Den aktuell konfigurierten ${inlineCode('Kanal')} für Server-Benachrichtigungen anzuzeigen.`,
+      `Den ${inlineCode('Zeitplan')} für Benachrichtigungen einzusehen, den der Bot verwendet (falls konfiguriert).`,
+      `Herauszufinden, wer die Bot-Konfiguration zuletzt geändert hat.`,
+    ])}
 
-      ${heading('Du kannst diesen Befehl verwenden, um', HeadingLevel.Three)}
-      ${unorderedList([
-        `Die aktuelle ${inlineCode('Latenz')} zwischen Bot und Discord abzufragen.`,
-        `Zu sehen, ob das Setup des Bots abgeschlossen ist oder noch ${inlineCode('ausstehend')} ist.`,
-        `Den aktuell konfigurierten ${inlineCode('Broadcast-Kanal')} für Server-Benachrichtigungen anzuzeigen.`,
-        `Den ${inlineCode('Broadcast-Zeitplan')} einzusehen, den der Bot verwendet (falls konfiguriert).`,
-        `Herauszufinden, wer die Bot-Konfiguration zuletzt geändert hat.`,
-      ])}
-
-      Wenn das Setup noch nicht abgeschlossen ist, erhältst du einen Hinweis, den Befehl ${inlineCode(`/${setupCommand.data.name}`)} auszuführen.
-
-      ${quote(italic('Verwende diesen Befehl immer dann, wenn du prüfen möchtest, ob der Bot bereit für Broadcasts ist oder etwas nicht stimmt.'))}
-    `,
+    ${quote(`Wenn das Setup noch nicht abgeschlossen ist, bekommst du einen Hinweis, ${inlineCode(`/${setupCommand.data.name}`)} auszuführen.`)}
+  `,
   },
   [setupCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  SETUP GUIDE  :information_source:')}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Setup  :beginner:')}
 
       ${bold('Command')}:  ${inlineCode(`/${setupCommand.data.name}`)}
-      ${bold('Purpose')}:  ${inlineCode('Configure the bot for broadcasts')}
+      ${bold('Purpose')}:  ${inlineCode('Configure the bot')}
 
       ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
-        `Select the ${inlineCode('broadcast channel')} where messages will be posted.`,
-        `Define the ${inlineCode('broadcast schedule')} with a valid CRON expression.`,
+        `Select the ${inlineCode('channel')} where messages will be posted.`,
+        `Define the ${inlineCode('notification schedule')} with a valid CRON expression.`,
         'Save your settings so the bot can operate automatically',
       ])}
 
-      ${heading('What the heck is CRON?!?!', HeadingLevel.Three)}
-      That's a good question! ${hyperlink('CRON expressions', 'https://en.wikipedia.org/wiki/Cron#Cron_expression')} are a way to define a recurring schedule with a standard format. Although it is commonly used in IT, it's also somewhat user friendly and there are many online tools ${hyperlink('like this one', 'https://crontab.io/validator')} which can help you define the CRON expression you want.
+      ${heading('What is CRON?', HeadingLevel.Three)}
+      ${inlineCode('CRON expressions')} are a compact way to define recurring schedules. If you need help building one, try ${hyperlink('this validator', 'https://crontab.io/validator')} or read the basics ${hyperlink('here', 'https://en.wikipedia.org/wiki/Cron#Cron_expression')}.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  SETUP-GUIDE  :information_source:')}
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Setup  :beginner:')}
 
       ${bold('Befehl')}:  ${inlineCode(`/${setupCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Bot für Übertragungen konfigurieren')}
 
       ${heading('Du kannst diesen Befehl verwendet, um', HeadingLevel.Three)}
       ${unorderedList([
-        `Den ${inlineCode('Broadcast-Kanal')} auszuwählen, in dem Nachrichten gesendet werden`,
-        `Den ${inlineCode('Broadcast-Zeitplan')} mit einem gültigen CRON-Ausdruck festzulegen`,
+        `Den ${inlineCode('Kanal')} auszuwählen, in dem Nachrichten gesendet werden`,
+        `Den ${inlineCode('Benachrichtigungs-Zeitplan')} mit einem gültigen CRON-Ausdruck festzulegen`,
         'Deine Einstellungen zu speichern, damit der Bot automatisch arbeiten kann',
       ])}
 
-      ${heading('Was zum Teufel ist CRON?!?!', HeadingLevel.Three)}
-      Gute Frage! ${hyperlink('CRON-Ausdrücke', 'https://de.wikipedia.org/wiki/Cron#Beispiele')} sind eine Möglichkeit, einen wiederkehrenden Zeitplan in einem standardisierten Format festzulegen. Obwohl CRON vor allem in der IT verwendet wird, ist es trotzdem einigermaßen benutzerfreundlich, und es gibt viele Online-Tools ${hyperlink('wie dieses hier', 'https://crontab.io/validator')} , die dir dabei helfen, den gewünschten CRON-Ausdruck zu erstellen.
+      ${heading('Was ist CRON?', HeadingLevel.Three)}
+      ${hyperlink('CRON-Ausdrücke', 'https://de.wikipedia.org/wiki/Cron#Beispiele')} sind ein kompaktes Format für wiederkehrende Zeitpläne. Hilfe beim Erstellen findest du z.B. bei ${hyperlink('https://crontab.io/validator', 'https://crontab.io/validator')}.
     `,
   },
   [addNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  NOTIFICATION GUIDE  :information_source:')}
-      In a world where new movies appear every day… this command keeps you in the spotlight.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  New Notification  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${addNotificationCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Create new movie notifications')}
 
       ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
         `Create a notification by giving it a unique ${inlineCode('name')}`,
-        `Define one (or multiple) movie titles or features for which to look out for while checking movies. All available features can be viewed with the ${inlineCode(`/${movieFeaturesCommand.data.name}`)} command.`,
+        `Define one (or multiple) movie titles or features to watch for. See all features with ${inlineCode(`/${movieFeaturesCommand.data.name}`)}.`,
       ])}
 
-      ${heading('How movie title and feature filtering works', HeadingLevel.Three)}
-      You can define one or more keywords per notification. When you want to define more than one movie title or feature, you can provide a semicolon separated list of keywords. All keywords are ${bold('not')} case-sensitive and will always ${bold('be used together')}.
-      {{{botName}}} will use these keywords to perform a ${inlineCode('fuzzy search')} across all movies which are currently shown. If he finds a match, you get a notification which will include some basic details about the movie.
+      ${heading('How title & feature filtering works', HeadingLevel.Three)}
+      Add one or more keywords per notification. For multiple entries, separate them with semicolons. Keywords are ${bold('not')} case-sensitive and are matched ${bold('together')}.
+      {{{botName}}} runs a ${inlineCode('fuzzy search')} across currently shown movies and DMs you if there’s a match.
 
-      For example, if you create a notification for a movie title called ${inlineCode('duNne')} with a feature called ${inlineCode('3D')}, {{{botName}}} will keep a lookout for movies where the title approximately matches ${inlineCode('duNne')} and is in ${inlineCode('3D')}. If {{{botName}}} finds one, you will receive a DM.
-
-      ${quote(`In case you have never heard of ${hyperlink('fuzzy search', 'https://en.wikipedia.org/wiki/Approximate_string_matching')}, it basically allows you to define a not-so-correct keyword. It will still notify you about possible matches, not only exact ones.`)}
+      Example: if you create a notification for ${inlineCode('duNne')} with feature ${inlineCode('3D')}, {{{botName}}} will look for titles roughly matching ${inlineCode('duNne')} that also have ${inlineCode('3D')}. If found, you get a DM.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  BENACHRICHTIGUNGS-GUIDE  :information_source:')}
-      In einer Welt, in der jeden Tag neue Filme erscheinen … hält dich dieser Befehl im Rampenlicht.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Neue Benachrichtigung  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${addNotificationCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Neue Filmbenachrichtigungen anlegen')}
 
       ${heading('Du kannst diesen Befehl verwendet, um', HeadingLevel.Three)}
       ${unorderedList([
         `Eine Benachrichtigung zu erstellen, indem du ihr einen eindeutigen ${inlineCode('Namen')} gibst`,
-        `Einen oder mehrere Filmtitel oder Features festzulegen, nach denen beim Filmen gesucht werden soll. Alle verfügbaren Features können mit dem Befehl ${inlineCode(`/${movieFeaturesCommand.data.name}`)} angezeigt werden.`,
+        `Einen oder mehrere Filmtitel oder Features festzulegen, nach denen gesucht werden soll. Alle Features siehst du mit ${inlineCode(`/${movieFeaturesCommand.data.name}`)}.`,
       ])}
 
-      ${heading('So funktioniert das Suchen nach Filmtiteln und Features', HeadingLevel.Three)}
-      Du kannst pro Benachrichtigung ein oder mehrere Schlüsselwörter festlegen. Wenn du mehr als einen Filmtitel oder ein Feature definieren möchtest, kannst du eine durch Semikolons getrennte Liste von Schlüsselwörtern angeben. Alle Schlüsselwörter sind ${bold('nicht')} groß-/kleinschreibungsabhängig und werden ${bold('immer zusammen genutzt')}.
-      {{{botName}}} verwendet diese Schlüsselwörter, um eine ${inlineCode('unscharfe Suche')} über alle aktuell gezeigten Filme durchzuführen. Wenn er einen Treffer findet, erhältst du eine Benachrichtigung mit einigen Basisinformationen zum Film.
+      ${heading('So funktioniert das Filtern nach Titeln & Features', HeadingLevel.Three)}
+      Gib ein oder mehrere Schlüsselwörter pro Benachrichtigung an. Mehrere Einträge trennst du mit Semikolons. Schlüsselwörter sind ${bold('nicht')} case-sensitive und werden ${bold('zusammen')} verwendet.
+      {{{botName}}} nutzt eine ${inlineCode('unscharfe Suche')} über aktuell gezeigte Filme und schickt dir eine DM, wenn was passt.
 
-      Zum Beispiel: Wenn du eine Benachrichtigung für einen Filmtitel namens ${inlineCode('duNne')} mit einem Merkmal ${inlineCode('3D')} erstellst, wird {{{botName}}} nach Filmen suchen, deren Titel ungefähr ${inlineCode('duNne')} entspricht und die in ${inlineCode('3D')} sind.
-      Wenn {{{botName}}} einen findet, erhältst du eine Direktnachricht.
-
-      ${quote(`Falls du noch nie von ${hyperlink('unscharfer Suche', 'https://de.wikipedia.org/wiki/Unscharfe_Suche')} gehört hast: Sie ermöglicht es dir, ein nicht ganz korrektes Schlüsselwort zu definieren. Du wirst trotzdem über mögliche Treffer benachrichtigt, nicht nur über exakte.`)}
+      Beispiel: Erstellst du eine Benachrichtigung für ${inlineCode('duNne')} + ${inlineCode('3D')}, sucht {{{botName}}} nach Titeln, die ungefähr ${inlineCode('duNne')} entsprechen und ${inlineCode('3D')} haben. Gefunden = DM an dich.
     `,
   },
   [listNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  LIST NOTIFICATIONS  :information_source:')}
-      In a world where every notification is a beacon… this command reveals them all.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Your Notifications  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${listNotificationCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Display all your active notifications')}
 
       ${heading('Use this command to', HeadingLevel.Three)}
       ${unorderedList([
         'See all notifications you have created.',
-        `Review each notification's ${inlineCode('name')} and it's ${inlineCode('keywords')}.`,
+        `Review each notification's ${inlineCode('name')} and its ${inlineCode('keywords')}.`,
         'Check how many times each has been sent, when the last notification was triggered, and any expiration dates.',
         `Understand the sending ${inlineCode('interval')} for each notification.`,
       ])}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  BENACHRICHTIGUNGEN AUFLISTEN  :information_source:')}
-      In einer Welt, in der jede Benachrichtigung ein Signal ist… zeigt dir dieser Befehl alles auf.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Deine Benachrichtigungen  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${listNotificationCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Zeige alle aktiven Benachrichtigungen an')}
 
@@ -244,10 +226,8 @@ const replies = {
     `,
   },
   [deleteNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  DELETE NOTIFICATION  :information_source:')}
-      In a world where every notification leaves a trace… this command lets you clear one from existence.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Delete Notification  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${deleteNotificationCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Remove an existing notification')}
 
@@ -258,10 +238,8 @@ const replies = {
         'Ensure that only the notifications you want continue to trigger.',
       ])}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  BENACHRICHTIGUNG LÖSCHEN  :information_source:')}
-      In einer Welt, in der jede Benachrichtigung Spuren hinterlässt… erlaubt dir dieser Befehl, eine aus der Existenz zu entfernen.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  beanchrichtigung Löschen  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${deleteNotificationCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Eine bestehende Benachrichtigung entfernen')}
 
@@ -274,10 +252,8 @@ const replies = {
     `,
   },
   [reactivateNotificationCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-    ${heading(':information_source:  REACTIVATE NOTIFICATION  :information_source:')}
-      In a world where once-silent messengers await their call… this command brings them back to life.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Reactivate Notification  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${reactivateNotificationCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Reactivates a previously deactivated notification')}
 
@@ -288,10 +264,8 @@ const replies = {
         'Bring back a notification that once fell silent.',
       ])}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  BENACHRICHTIGUNG REAKTIVIEREN  :information_source:')}
-      In einer Welt, in der einst verstummte Boten auf ihren Ruf warten… erweckt dieser Befehl sie zu neuem Leben.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Beanchrichtigung Reaktivieren  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${reactivateNotificationCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Reaktiviert eine zuvor deaktivierte Benachrichtigung')}
 
@@ -304,8 +278,8 @@ const replies = {
     `,
   },
   [setPreferencesCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  SET PREFERENCES GUIDE  :information_source:')}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Set Preferences  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${setPreferencesCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Sets your preferences (timezone, locale, etc.) for later use')}
 
@@ -315,27 +289,25 @@ const replies = {
         `Set your locale so the bot can communicate with you. If no locale is defined, defaults to ${inlineCode(Locale.EnglishUS)}.`,
       ])}
 
-      ${quote('You should always make sure that you have the correct timezone set, otherwise some things might not behave as expected.')}
+      Make sure your timezone is correct so notifications come at the right time.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  PRÄFERENZEN-GUIDE  :information_source:')}
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Präferenzen Setzen  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${setPreferencesCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Legt deine Präferenzen (Zeitzone, Sprache, uws.) für die spätere Verwendung fest')}
 
       ${heading('Verwende diesen Befehl, um', HeadingLevel.Three)}
       ${unorderedList([
         `Deine aktuelle Zeitzone festzulegen, damit der Bot Benachrichtigungen und andere Film-Updates korrekt handhaben kann. Wenn keine Zeitzone definiert ist, wird standardmäßig ${inlineCode('Europe/Vienna')} verwendet.`,
-        `Deine Sprache festzulegen, damit der Bot sich mit dir verständigen kann. Wenn keine Zeitzone definiert ist, wird standardmäßig ${inlineCode(Locale.EnglishUS)} verwendet.`,
+        `Deine Sprache festzulegen, damit der Bot sich mit dir verständigen kann. Wenn keine Sprache definiert ist, wird standardmäßig ${inlineCode(Locale.EnglishUS)} verwendet.`,
       ])}
 
-      ${quote('Du solltest immer sicherstellen, dass du die richtige Zeitzone eingestellt hast, da sonst manche Dinge möglicherweise nicht wie erwartet funktionieren.')}
+      Stelle sicher, dass deine Zeitzone stimmt, damit Benachrichtigungen zur richtigen Zeit kommen.
     `,
   },
   [movieFeaturesCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  MOVIE FEATURES  :information_source:')}
-      In a world where every story is made of fragments… this command unveils the essence of each movie trait.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Supported Movie Features  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${movieFeaturesCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Display all known movie features recognized by the bot')}
 
@@ -347,10 +319,8 @@ const replies = {
         `Get inspiration for customizing your ${inlineCode(`/${addNotificationCommand.data.name}`)} notifications.`,
       ])}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  FILM-FEATURES  :information_source:')}
-      In einer Welt, in der jede Geschichte aus Fragmenten besteht… enthüllt dieser Befehl die Essenz jeder Filmeigenschaft.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Unterstützte Schlüsselwörter  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${movieFeaturesCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Zeigt alle vom Bot erkannten Film-Features an')}
 
@@ -364,10 +334,8 @@ const replies = {
     `,
   },
   [movieDetailsCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  MOVIE DETAILS  :information_source:')}
-      In a world where every story has layers… this command reveals them.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Movie Details  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${movieDetailsCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Show detailed information about a specific movie.')}
 
@@ -377,12 +345,10 @@ const replies = {
         'See its total runtime in minutes.',
       ])}
 
-      ${quote(`You can use the ${inlineCode(`/${movieScreeningsCommand.data.name}`)} command to check when the movie is shown next.`)}
+      Use ${inlineCode(`/${movieScreeningsCommand.data.name}`)} to check upcoming showtimes.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  FILMDETAILS  :information_source:')}
-      In einer Welt, in der jede Geschichte Schichten hat… enthüllt dir dieser Befehl alles.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Filmdetails  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${movieDetailsCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Zeige detaillierte Informationen zu einem bestimmten Film an.')}
 
@@ -392,14 +358,12 @@ const replies = {
         'Die Gesamtlaufzeit in Minuten zu sehen.',
       ])}
 
-      ${quote(`Du kannst den ${inlineCode(`/${movieScreeningsCommand.data.name}`)} Befehl nutzen, um zu checken, wann die nächste Vorstellung stattfindet.`)}
+      Nutze ${inlineCode(`/${movieScreeningsCommand.data.name}`)}, um die nächsten Vorführungen zu prüfen.
     `,
   },
   [movieScreeningsCommand.data.name]: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':information_source:  MOVIE SCREENINGS  :information_source:')}
-      In a world where every story needs a stage… this command reveals the times and places.
-
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':beginner:  Movie Screenings  :beginner:')}
       ${bold('Command')}:  ${inlineCode(`/${movieScreeningsCommand.data.name}`)}
       ${bold('Purpose')}:  ${inlineCode('Display all scheduled screenings for a specific movie.')}
 
@@ -411,10 +375,8 @@ const replies = {
         'Review extra features of each screening, like 3D or Dolby Atmos.',
       ])}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':information_source:  FILMVORSTELLUNGEN  :information_source:')}
-      In einer Welt, in der jede Geschichte eine Bühne braucht… zeigt dir dieser Befehl die Zeiten und Orte.
-
+    [Locale.German]: chatMessage`
+      ${heading(':beginner:  Filmvorstellungen  :beginner:')}
       ${bold('Befehl')}:  ${inlineCode(`/${movieScreeningsCommand.data.name}`)}
       ${bold('Zweck')}:  ${inlineCode('Zeige alle geplanten Vorstellungen eines bestimmten Films an.')}
 
@@ -428,22 +390,13 @@ const replies = {
     `,
   },
   unknown: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  UNKNOWN COMMAND  :bangbang:')}
-      In a world where every command has a purpose… you've discovered uncharted territory.
-
-      The command you entered could not be found. Double-check the name and try again.
-
-      ${quote(italic('The path you tried to walk does not exist. Try a known command instead.'))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Unknown Command  :boom:')}
+      I couldn't find that command — double-check the name and try one of the known commands.
     `,
-
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  UNBEKANNTER BEFEHL  :bangbang:')}
-      In einer Welt, in der jeder Befehl seinen Platz hat … bist du ins Unbekannte vorgedrungen.
-
-      Der von dir eingegebene Befehl konnte nicht gefunden werden. Überprüfe den Namen und versuche es erneut.
-
-      ${quote(italic('Der Weg, den du gehen wolltest, existiert nicht. Versuche stattdessen einen bekannten Befehl.'))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Unbekannter Befehl  :boom:')}
+      Der eingegebene Befehl wurde nicht gefunden. Überprüfe den Namen und versuche einen bekannten Befehl.
     `,
   },
 } as const;

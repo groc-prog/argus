@@ -14,9 +14,9 @@ export default {
       const existingBotConfiguration = await BotConfigurationModel.deleteOne({ guildId: guild.id });
       if (existingBotConfiguration.deletedCount === 0)
         loggerWithCtx.info('No existing bot configuration found, skipping');
-      else loggerWithCtx.info('Bot configuration cleanup finished');
+      else loggerWithCtx.info('Bot configuration removed successfully');
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Failed to clean up bot configuration');
+      loggerWithCtx.error({ err }, 'Failed to remove bot configuration');
     }
   },
 };

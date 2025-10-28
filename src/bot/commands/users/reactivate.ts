@@ -3,17 +3,15 @@ import {
   ChatInputCommandInteraction,
   heading,
   inlineCode,
-  italic,
   Locale,
   MessageFlags,
-  quote,
   SlashCommandBuilder,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { UserModel, type User } from '../../../models/user';
 import { isValidObjectId, Types } from 'mongoose';
 import Fuse from 'fuse.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import dayjs from 'dayjs';
 
 export default {
@@ -85,10 +83,12 @@ export default {
         return;
       }
 
-      const expiresAtUtc = dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day');
+      const expiresAtUtc = expiresAt
+        ? dayjs.utc(expiresAt, 'YYYY-MM-DD', true).startOf('day')
+        : null;
       if (expiresAt) {
         loggerWithCtx.debug('Validating expiration date option');
-        const isValidDate = expiresAtUtc.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
+        const isValidDate = expiresAtUtc?.isValid() && expiresAtUtc.diff(dayjs.utc()) >= 0;
 
         if (!isValidDate) {
           loggerWithCtx.info('Invalid expiration date received, aborting');
@@ -124,7 +124,7 @@ export default {
       entry.sentDms = entry.maxDms ? 0 : undefined;
       entry.deactivatedAt = undefined;
       entry.lastDmSentAt = undefined;
-      entry.expiresAt = expiresAt ? expiresAtUtc.toDate() : undefined;
+      entry.expiresAt = expiresAt && expiresAtUtc ? expiresAtUtc.toDate() : undefined;
 
       user.notifications[entryIndex] = entry;
       loggerWithCtx.info('Saving updated notification');
@@ -161,7 +161,7 @@ export default {
         notifications: { name: string; _id: Types.ObjectId }[];
       }>()
         .match({
-          userId: interaction.user.id,
+          discordId: interaction.user.id,
           'notifications.deactivatedAt': { $exists: true },
         })
         .project({
@@ -221,79 +221,49 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':popcorn:  NOTIFICATION REACTIVATED  :popcorn:')}
-      In a world where silence reigned… a signal has returned to life.
-
-      The notification ${inlineCode('{{{notificationName}}}')} has been successfully reactivated.
-      Once more, it will stand watch and deliver its messages when the time is right.
-
-      ${quote(italic(`The lights flicker back on — the show continues.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':popcorn:  Notification Reactivated  :popcorn:')}
+      The notification ${inlineCode('{{{notificationName}}}')} is back in action!
+      You'll start getting updates again when it's showtime.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':popcorn:  BENACHRICHTIGUNG REAKTIVIERT  :popcorn:')}
-      In einer Welt, in der die Stille herrschte… ist ein Signal zum Leben zurückgekehrt.
-
-      Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich reaktiviert.
-      Sie wacht erneut und sendet ihre Nachrichten, wenn der Moment gekommen ist.
-
-      ${quote(italic(`Die Lichter flackern wieder auf — die Show geht weiter.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':popcorn:  Benachrichtigung reaktiviert  :popcorn:')}
+      Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} ist wieder aktiv!
+      Du erhältst erneut Updates, sobald es soweit ist.
     `,
   },
   dateValidationError: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':calendar:  DATE VALIDATION ERROR  :calendar:')}
-      In a world where time marches on relentlessly… some dates cannot be honored.
-
-      The provided date ${inlineCode('{{{date}}}')} is either invalid or has already passed. Please provide a future date in the format ${inlineCode('YYYY-MM-DD')}.
-
-      ${quote(italic(`The bot cannot travel back in time. Adjust the date and try again to keep the story moving.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':calendar:  Invalid Date  :calendar:')}
+      The date ${inlineCode('{{{date}}}')} doesn't seem right — it's either invalid or already in the past.
+      Please use a future date in the format ${inlineCode('YYYY-MM-DD')}.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':calendar:  DATUMSVALIDIERUNGSFEHLER  :calendar:')}
-      In einer Welt, in der die Zeit unerbittlich voranschreitet… können einige Daten nicht beachtet werden.
-
-      Das angegebene Datum ${inlineCode('{{{date}}}')} ist entweder ungültig oder liegt bereits in der Vergangenheit. Bitte gib ein zukünftiges Datum im Format ${inlineCode('JJJJ-MM-TT')} an.
-
-      ${quote(italic(`Der Bot kann nicht in die Vergangenheit reisen. Passe das Datum an und versuche es erneut, damit die Geschichte weitergeht.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':calendar:  Ungültiges Datum  :calendar:')}
+      Das Datum ${inlineCode('{{{date}}}')} ist entweder ungültig oder liegt in der Vergangenheit.
+      Bitte gib ein zukünftiges Datum im Format ${inlineCode('JJJJ-MM-TT')} an.
     `,
   },
   notificationNotFound: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':no_entry:  INVALID NOTIFICATION  :no_entry:')}
-      In a world where every signal must be real… some shadows cannot be touched.
-
-      The notification you are trying to remove does not exist or is invalid. Ensure you are referencing a valid notification.
-
-      ${quote(italic(`The stage cannot remove what is not there. Check your notification and try again.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':no_entry:  Notification Not Found  :no_entry:')}
+      I couldn't find the notification you're referring to — it may not exist or has already been removed.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':no_entry:  UNGÜLTIGE BENACHRICHTIGUNG  :no_entry:')}
-      In einer Welt, in der jedes Signal real sein muss… können manche Schatten nicht berührt werden.
-
-      Die Benachrichtigung, die du entfernen möchtest, existiert nicht oder ist ungültig. Stelle sicher, dass du eine gültige Benachrichtigung referenzierst.
-
-      ${quote(italic(`Die Bühne kann nicht entfernen, was nicht existiert. Überprüfe deine Benachrichtigung und versuche es erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':no_entry:  Benachrichtigung nicht gefunden  :no_entry:')}
+      Ich konnte die angegebene Benachrichtigung nicht finden — sie existiert möglicherweise nicht mehr oder wurde schon gelöscht.
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  NOTIFICATION REACTIVATION FAILED  :bangbang:')}
-      In a world where silence was meant to end… the signal refused to rise.
-
-      The bot attempted to reactivate the notification, but something went wrong.
-      It may already be active, missing, or the system simply lost its spark.
-
-      ${quote(italic(`The gears turned, but the current never flowed. Please verify the notification and try again.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Reactivation Failed  :boom:')}
+      Something went wrong while trying to reactivate your notification.
+      It might already be active or missing — please check and try again later.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FEHLGESCHLAGENE BENACHRICHTIGUNGSREAKTIVIERUNG  :bangbang:')}
-      In einer Welt, in der die Stille enden sollte… weigerte sich das Signal, zu erwachen.
-
-      Der Bot hat versucht, die Benachrichtigung zu reaktivieren, aber etwas ist schiefgelaufen.
-      Sie ist möglicherweise bereits aktiv, fehlt, oder das System hat seinen Funken verloren.
-
-      ${quote(italic(`Die Zahnräder drehten sich, doch der Strom floss nicht. Bitte überprüfe die Benachrichtigung und versuche es erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Reaktivierung fehlgeschlagen  :boom:')}
+      Beim Versuch, die Benachrichtigung zu reaktivieren, ist ein Fehler aufgetreten.
+      Sie ist vielleicht schon aktiv oder fehlt — bitte überprüfe sie und versuche es später erneut.
     `,
   },
 } as const;

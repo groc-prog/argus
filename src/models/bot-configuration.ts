@@ -17,8 +17,8 @@ import { client } from '../bot/client';
 
 const botConfigurationSchema = new mongoose.Schema(
   {
-    /** The unique ID of the discord channel the bot will use to broadcast his messages. */
-    broadcastChannelId: {
+    /** The unique ID of the discord channel the bot will use to send his messages. */
+    channelId: {
       type: mongoose.SchemaTypes.String,
       unique: true,
     },
@@ -28,8 +28,8 @@ const botConfigurationSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
-    /** A custom schedule for when the bot will broadcast his messages. */
-    broadcastCronSchedule: {
+    /** A custom schedule for when the bot will send his messages. */
+    guildNotificationsCronSchedule: {
       type: mongoose.SchemaTypes.String,
       index: true,
       trim: true,
@@ -37,7 +37,7 @@ const botConfigurationSchema = new mongoose.Schema(
       default: process.env.NOTIFICATION_SERVICE_GUILD_CRON,
     },
     /** Whether the bot should do scheduled broadcasts for the guild. */
-    broadcastsDisabled: {
+    guildNotificationsDisabled: {
       type: mongoose.SchemaTypes.Boolean,
       required: true,
       default: true,
@@ -66,7 +66,7 @@ const botConfigurationSchema = new mongoose.Schema(
        * Inserts a bot configurations with the defined channelId and other defaults for the
        * provided guild.
        * @param {string} guildId - The ID of the guild for which the default should be created.
-       * @param {string} channelId - The ID of the channel which should be set as the `broadcastChannelId`.
+       * @param {string} channelId - The ID of the channel which should be set as the `channelId`.
        * @param {string} botId - The user ID of the bot who is creating the configuration.
        * @throws Any errors thrown by `Model.save()`
        */
@@ -83,8 +83,8 @@ const botConfigurationSchema = new mongoose.Schema(
         loggerWithCtx.info('Creating new default bot configuration');
         const defaultConfiguration = new BotConfigurationModel({
           guildId,
-          broadcastChannelId: channelId,
-          broadcastCronSchedule: process.env.NOTIFICATION_SERVICE_GUILD_CRON,
+          channelId: channelId,
+          guildNotificationsCronSchedule: process.env.NOTIFICATION_SERVICE_GUILD_CRON,
           lastModifiedBy: botId,
         });
 
@@ -97,7 +97,7 @@ const botConfigurationSchema = new mongoose.Schema(
        * @throws {Error} If the discord.js client is not ready.
        * @returns {boolean} `true` if the channel is valid, otherwise `false`.
        */
-      isValidBroadcastChannel(channel: GuildBasedChannel | null | undefined): boolean {
+      isValidChannel(channel: GuildBasedChannel | null | undefined): boolean {
         if (!client.isReady()) throw new Error('Client not initialized yet');
         if (!channel) return false;
 
@@ -115,16 +115,17 @@ const botConfigurationSchema = new mongoose.Schema(
        * @returns The resolved channel or `null` if the channel is not available or the bot is missing
        * the required permissions.
        */
-      async resolveBroadcastChannel() {
+      async resolveGuildNotificationChannel() {
+        if (!client.isReady()) throw new Error('Client not initialized yet');
+
         const loggerWithCtx = logger.child({
           guildId: this.guildId,
-          channelId: this.broadcastChannelId,
+          channelId: this.channelId,
           model: BotConfigurationModel.constructor.name,
         });
 
         loggerWithCtx.info('Resolving configured broadcast channel from guild configuration');
-        if (!client.isReady()) throw new Error('Client not initialized yet');
-        if (!this.broadcastChannelId) {
+        if (!this.channelId) {
           loggerWithCtx.debug('No broadcast channel configured');
           return null;
         }
@@ -133,11 +134,11 @@ const botConfigurationSchema = new mongoose.Schema(
           let channel: Channel | null;
 
           loggerWithCtx.debug('Checking cache for channel');
-          const cachedChannel = client.channels.cache.get(this.broadcastChannelId);
+          const cachedChannel = client.channels.cache.get(this.channelId);
           if (cachedChannel) channel = cachedChannel;
           else {
             loggerWithCtx.info('Fetching channel from Discord API');
-            channel = await client.channels.fetch(this.broadcastChannelId);
+            channel = await client.channels.fetch(this.channelId);
           }
 
           // We can not use the `isValidBroadcastChannel` helper here since it would otherwise result
@@ -174,13 +175,13 @@ const botConfigurationSchema = new mongoose.Schema(
        * @returns The resolved guild or `null` if the guild is not found.
        */
       async resolveGuild() {
+        if (!client.isReady()) throw new Error('Client not initialized yet');
+
         const loggerWithCtx = logger.child({
           guildId: this.guildId,
           model: BotConfigurationModel.constructor.name,
         });
-
         loggerWithCtx.info('Resolving guild from configuration');
-        if (!client.isReady()) throw new Error('Client not initialized yet');
 
         try {
           let guild: Guild | null;
@@ -205,14 +206,14 @@ const botConfigurationSchema = new mongoose.Schema(
        * @returns The resolved user.
        */
       async resolveLastModifiedUser() {
+        if (!client.isReady()) throw new Error('Client not initialized yet');
+
         const loggerWithCtx = logger.child({
           guildId: this.guildId,
           userId: this.lastModifiedBy,
           model: BotConfigurationModel.constructor.name,
         });
-
         loggerWithCtx.info('Resolving user who last modified configuration');
-        if (!client.isReady()) throw new Error('Client not initialized yet');
 
         try {
           let user: User;

@@ -5,13 +5,11 @@ import {
   heading,
   HeadingLevel,
   inlineCode,
-  italic,
   Locale,
   MessageFlags,
-  quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { MovieModel } from '../../../models/movie';
 import { isValidObjectId } from 'mongoose';
@@ -56,7 +54,7 @@ export default {
         },
       );
       if (!movie) {
-        loggerWithCtx.info('Provided input option did not match any movies');
+        loggerWithCtx.info('Provided input option did not match any known movies');
         await sendInteractionReply(interaction, replies.movieNotFound, {
           interaction: {
             flags: MessageFlags.Ephemeral,
@@ -106,7 +104,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
+    [Locale.EnglishUS]: chatMessage`
       ${heading(':clapper:  {{{title}}}  :clapper:', HeadingLevel.Two)}
       {{#description}}
         {{{description}}}
@@ -122,7 +120,7 @@ const replies = {
         ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
       {{/hasGenres}}
     `,
-    [Locale.German]: discordMessage`
+    [Locale.German]: chatMessage`
       ${heading(':clapper:  {{{title}}}  :clapper:', HeadingLevel.Two)}
       {{#description}}
         {{{description}}}
@@ -140,39 +138,31 @@ const replies = {
     `,
   },
   movieNotFound: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  MOVIE NOT FOUND  :bangbang:')}
-      In a world filled with stories… this one remains untold.
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':thinking:  Movie Not Found  :thinking:')}
+      Hmm… looks like I can't find that movie
 
-      The requested movie could not be found. It may not exist, or it might have slipped into the shadows of the archive.
-
-      ${quote(italic(`The reel spins endlessly, yet this story eludes the frame. Check your title and try again.`))}
+      Either it doesn't exist or it's hiding somewhere in the archives. Double-check the title and we'll try again — the popcorn's waiting!
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FILM NICHT GEFUNDEN  :bangbang:')}
-      In einer Welt voller Geschichten… bleibt diese unerzählt.
+    [Locale.German]: chatMessage`
+      ${heading(':thinking:  Film Nicht Gefunden  :thinking:')}
+      Hmm… ich kann den Film leider nicht finden
 
-      Der angeforderte Film konnte nicht gefunden werden. Er existiert möglicherweise nicht oder ist in den Schatten des Archivs verschwunden.
-
-      ${quote(italic(`Die Filmrolle dreht sich endlos, doch diese Geschichte entzieht sich dem Bild. Überprüfe den Titel und versuche es erneut.`))}
+      Vielleicht existiert er nicht oder versteckt sich irgendwo im Archiv. Überprüfe den Titel und wir probieren's nochmal — das Popcorn wartet schon!
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  MOVIE RETRIEVAL FAILED  :bangbang:')}
-      In a world where stories should flow freely… something disrupted the reel.
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Movie Retrieval Failed  :boom:')}
+      Oops! Something went wrong while grabbing the movie info
 
-      The bot was unable to retrieve the requested movie information. A disturbance in the network or an issue with the data source prevented completion of your request.
-
-      ${quote(italic(`The scene fades before it begins. Please try again later — the story will resume once balance is restored.`))}
+      Could be a network hiccup or an issue with the data source. The reel didn't spin this time… Try again later and we'll get your movie fix!
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FILMABRUF FEHLGESCHLAGEN  :bangbang:')}
-      In einer Welt, in der Geschichten frei fließen sollten… wurde der Filmstreifen unterbrochen.
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Filmabruf Fehlgeschlagen  :boom:')}
+      Ups! Beim Abrufen der Filminfos ist was schiefgelaufen
 
-      Der Bot konnte die angeforderten Filminformationen nicht abrufen. Eine Störung im Netzwerk oder ein Problem mit der Datenquelle hat die Anfrage verhindert.
-
-      ${quote(italic(`Die Szene verblasst, bevor sie beginnt. Bitte versuche es später erneut — die Geschichte wird fortgesetzt, sobald das Gleichgewicht wiederhergestellt ist.`))}
+      Könnte ein Netzwerkproblem oder ein Fehler bei der Datenquelle sein. Der Filmstreifen wollte diesmal nicht laufen… Versuch's später nochmal und wir holen dein Kino-Update!
     `,
   },
 } as const;

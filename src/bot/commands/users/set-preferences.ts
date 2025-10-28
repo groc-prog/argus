@@ -2,15 +2,13 @@ import {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
   heading,
-  italic,
   Locale,
   MessageFlags,
-  quote,
   SlashCommandBuilder,
 } from 'discord.js';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { UserModel, type User } from '../../../models/user';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import Fuse from 'fuse.js';
 
 export default {
@@ -47,9 +45,7 @@ export default {
       if (locale && !Object.values(Locale).includes(locale))
         throw new Error('Invalid locale provided');
 
-      loggerWithCtx.info(
-        'Updating user configuration with new timezone or creating new record if none exists',
-      );
+      loggerWithCtx.info('Updating user configuration or creating new record if none exists');
       const updatedPreferences: Partial<Pick<User, 'timezone' | 'locale'>> = {};
       if (timezone) updatedPreferences.timezone = timezone;
       if (locale) updatedPreferences.locale = locale;
@@ -64,7 +60,7 @@ export default {
         },
         { upsert: true },
       );
-      loggerWithCtx.info('Timezone updated successfully');
+      loggerWithCtx.info('Configuration updated successfully');
 
       await sendInteractionReply(interaction, replies.success, {
         template: {
@@ -75,7 +71,7 @@ export default {
         },
       });
     } catch (err) {
-      loggerWithCtx.error({ err }, 'Error during timezone update');
+      loggerWithCtx.error({ err }, 'Error during configuration update');
       await sendInteractionReply(interaction, replies.error, {
         template: {
           timezone,
@@ -88,7 +84,7 @@ export default {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
-    const logger = getLoggerWithCtx(interaction);
+    const loggerWithCtx = getLoggerWithCtx(interaction);
 
     const focusedOption = interaction.options.getFocused(true);
 
@@ -99,12 +95,12 @@ export default {
       }));
 
       if (focusedOption.value.trim().length === 0) {
-        logger.debug('No input to filter yet, returning first 25 options');
+        loggerWithCtx.debug('No input to filter yet, returning first 25 options');
         await interaction.respond(timezones.slice(0, 25));
         return;
       }
 
-      logger.debug('Fuzzy searching timezone options');
+      loggerWithCtx.debug('Fuzzy searching timezone options');
       const fuse = new Fuse(timezones, {
         keys: ['name'],
       });
@@ -118,12 +114,12 @@ export default {
       }));
 
       if (focusedOption.value.trim().length === 0) {
-        logger.debug('No input to filter yet, returning first 25 options');
+        loggerWithCtx.debug('No input to filter yet, returning first 25 options');
         await interaction.respond(locales.slice(0, 25));
         return;
       }
 
-      logger.debug('Fuzzy searching locale options');
+      loggerWithCtx.debug('Fuzzy searching locale options');
       const fuse = new Fuse(locales, {
         keys: ['name'],
       });
@@ -136,41 +132,27 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':ok_hand:  PREFERENCE UPDATED  :ok_hand:')}
-      In a world where precision guides performance… balance has been restored.
-
-      The bot has successfully updated your preferences.
-      All related actions will now follow this new configuration.
-
-      ${quote(italic(`The stage adjusts, the timing aligns — the show continues in perfect sync.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':ok_hand:  Preferences Updated  :ok_hand:')}
+      Your preferences have been updated successfully!
+      All related actions will now follow your new setup.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':ok_hand:  PRÄFERENZEN AKTUALISIERT  :ok_hand:')}
-      In einer Welt, in der Präzision die Aufführung bestimmt… wurde das Gleichgewicht wiederhergestellt.
-
-      Der Bot hat deine Präferenzen erfolgreich auf aktualisiert.
-      Alle zugehörigen Aktionen folgen nun dieser neuen Konfiguration.
-
-      ${quote(italic(`Die Bühne passt sich an, das Timing stimmt — die Show läuft im perfekten Einklang weiter.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':ok_hand:  Einstellungen aktualisiert  :ok_hand:')}
+      Deine Präferenzen wurden erfolgreich gespeichert!
+      Alle zugehörigen Aktionen folgen jetzt deiner neuen Konfiguration.
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  PREFERENCE UPDATE FAILED  :bangbang:')}
-      In a world where precision guides performance… something fell out of tune.
-
-      The bot was unable to update your preferences. A disturbance occurred, and the request could not be completed.
-
-      ${quote(italic(`The system drifts out of sync — please verify your input and try again later.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Update Failed  :boom:')}
+      Hmm, something went off-script — I couldn't update your preferences this time.
+      Please double-check your input and try again later.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FEHLGESCHLAGENE PRÄFERENZAKTUALISIERUNG  :bangbang:')}
-      In einer Welt, in der Präzision die Aufführung bestimmt… geriet etwas aus dem Takt.
-
-      Der Bot konnte deine Präferenzen nicht aktualisieren. Eine Störung ist aufgetreten, und die Anfrage konnte nicht abgeschlossen werden.
-
-      ${quote(italic(`Das System ist nicht mehr im Einklang — bitte überprüfe deine Eingabe und versuche es später erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Aktualisierung fehlgeschlagen  :boom:')}
+      Hm, da lief wohl etwas nicht nach Plan — ich konnte deine Einstellungen nicht speichern.
+      Bitte überprüfe deine Eingaben und versuche es später erneut.
     `,
   },
 } as const;

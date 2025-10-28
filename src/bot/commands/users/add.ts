@@ -4,18 +4,18 @@ import {
   HeadingLevel,
   inlineCode,
   InteractionContextType,
-  italic,
   Locale,
   MessageFlags,
   quote,
   SlashCommandBuilder,
   unorderedList,
 } from 'discord.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import dayjs from 'dayjs';
 import { KeywordType, UserModel } from '../../../models/user';
 import { FEATURES } from '../../../constants';
+import movieFeaturesCommand from '../movies/features';
 
 export default {
   data: new SlashCommandBuilder()
@@ -91,10 +91,10 @@ export default {
     )
     .addNumberOption((option) =>
       option
-        .setName('notification-interval')
+        .setName('cooldown')
         .setNameLocalization(Locale.German, 'benachrichtigungs-intervall')
         .setDescription(
-          'A interval (in days) in which you will receive a notification. This defaults to 1x per day.',
+          'A cooldown (in days) before you will receive another notification. This defaults to 1 day.',
         )
         .setDescriptionLocalization(
           Locale.German,
@@ -109,7 +109,7 @@ export default {
     const name = interaction.options.getString('name', true);
     const maxDms = interaction.options.getNumber('max-dms');
     const deactivateOnExpiration = interaction.options.getBoolean('deactivate-on-expiration');
-    const dmDayInterval = interaction.options.getNumber('notification-interval') ?? 1;
+    const cooldown = interaction.options.getNumber('cooldown') ?? 1;
 
     const expiresAt = interaction.options.getString('expiration-date');
 
@@ -211,7 +211,7 @@ export default {
         maxDms: maxDms ?? undefined,
         expiresAt: expiresAt ? expiresAtUtc.toDate() : undefined,
         keepAfterExpiration: deactivateOnExpiration ?? undefined,
-        dmDayInterval,
+        cooldown,
         keywords: [
           ...validFeatures.map((value) => ({ type: KeywordType.MovieFeature, value })),
           ...(titlesArr?.map((value) => ({ type: KeywordType.MovieTitle, value })) ?? []),
@@ -227,7 +227,7 @@ export default {
           notificationName: name,
           expiresAt: expiresAt ? dayjs(expiresAt).format('YYYY-MM-DD') : undefined,
           maxDms,
-          dmDayInterval,
+          cooldown,
           omittedFeatures,
           hasOmittedFeatures: omittedFeatures.length !== 0,
         },
@@ -248,113 +248,79 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
-    ${heading(':popcorn:  NOTIFICATION CREATED  :popcorn:')}
-    In a world where anticipation meets precision… a new signal rises.
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':popcorn:  Notification Created  :popcorn:')}
+      The notification ${inlineCode('{{{notificationName}}}')} has been created successfully. You will be notified when I find something.
 
-    The notification ${inlineCode('{{{notificationName}}}')} has been created successfully.
-    {{#dmDayInterval}}You will receive ${inlineCode('{{{dmDayInterval}}}x')} DM(s) per day as long as the notification is active.{{/dmDayInterval}}
-    {{#expiresAt}}It will expire on ${inlineCode('{{{expiresAt}}}')}.{{/expiresAt}}
-    {{#maxDms}}It will automatically end after ${inlineCode('{{{maxDms}}}')} DM's.{{/maxDms}}
-    {{#hasOmittedFeatures}}
-      ${heading(':warning:  Some features have been omitted', HeadingLevel.Three)}
-      The following features are unknown to the bot and have thus been omitted:
-      {{#omittedFeatures}}
-        ${unorderedList([inlineCode('{{{.}}}')])}
-      {{/omittedFeatures}}
-    {{/hasOmittedFeatures}}
+      {{#cooldown}}You will receive a DM every ${inlineCode('{{{cooldown}}}')} day(s) while active.{{/cooldown}}
+      {{#expiresAt}}It will expire on ${inlineCode('{{{expiresAt}}}')}.{{/expiresAt}}
+      {{#maxDms}}It will automatically end after ${inlineCode('{{{maxDms}}}')} DM(s).{{/maxDms}}
+      {{#hasOmittedFeatures}}
+        ${heading(':warning:  Some features were omitted', HeadingLevel.Three)}
+        The following features are unknown and have been omitted:
+        {{#omittedFeatures}}
+          ${unorderedList([inlineCode('{{{.}}}')])}
+        {{/omittedFeatures}}
+      {{/hasOmittedFeatures}}
+    `,
+    [Locale.German]: chatMessage`
+      ${heading(':popcorn:  Benachrichtigung erstellt  :popcorn:')}
+      Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich erstellt. Du wirst benachrichtigt, sobald ich was finde.
 
-    ${quote(italic(`The beacon is lit. You will be notified when the moment arrives.`))}
-  `,
-    [Locale.German]: discordMessage`
-    ${heading(':popcorn:  BENACHRICHTIGUNG ERSTELLT  :popcorn:')}
-    In einer Welt, in der Erwartung auf Präzision trifft… erhebt sich ein neues Signal.
-
-    Die Benachrichtigung ${inlineCode('{{{notificationName}}}')} wurde erfolgreich erstellt.
-    {{#dmDayInterval}}Du erhältst ${inlineCode('{{{dmDayInterval}}}x')} Benachrichtigung(en) per Tag, solange sie aktiv ist.{{/dmDayInterval}}
-    {{#expiresAt}}Sie läuft am ${inlineCode('{{{expiresAt}}}')} ab.{{/expiresAt}}
-    {{#maxDms}}Sie endet automatisch nach ${inlineCode('{{{maxDms}}}')} Benachrichtigungen.{{/maxDms}}
-    {{#hasOmittedFeatures}}
-      ${heading(':warning:  Einige Features wurde weggelassen', HeadingLevel.Three)}
-      Folgende Features sind dem Bot unbekannt und wurden daher weggelassen:
-      {{#omittedFeatures}}
-        ${unorderedList([inlineCode('{{{.}}}')])}
-      {{/omittedFeatures}}
-    {{/hasOmittedFeatures}}
-
-    ${quote(italic(`Das Signal ist gesetzt. Du wirst benachrichtigt, sobald der Moment gekommen ist.`))}
-  `,
+      {{#cooldown}}Du erhältst alle ${inlineCode('{{{cooldown}}}')} Tage eine Benachrichtigung, solange sie aktiv ist.{{/cooldown}}
+      {{#expiresAt}}Sie läuft am ${inlineCode('{{{expiresAt}}}')} ab.{{/expiresAt}}
+      {{#maxDms}}Sie endet automatisch nach ${inlineCode('{{{maxDms}}}')} Benachrichtigungen.{{/maxDms}}
+      {{#hasOmittedFeatures}}
+        ${heading(':warning:  Einige Features wurden weggelassen', HeadingLevel.Three)}
+        Folgende Features sind unbekannt und wurden daher weggelassen:
+        {{#omittedFeatures}}
+          ${unorderedList([inlineCode('{{{.}}}')])}
+        {{/omittedFeatures}}
+      {{/hasOmittedFeatures}}
+    `,
   },
   dateValidationError: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':calendar:  DATE VALIDATION ERROR  :calendar:')}
-      In a world where time marches on relentlessly… some dates cannot be honored.
-
-      The provided date ${inlineCode('{{{date}}}')} is either invalid or has already passed. Please provide a future date in the format ${inlineCode('YYYY-MM-DD')}.
-
-      ${quote(italic(`The bot cannot travel back in time. Adjust the date and try again to keep the story moving.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':calendar:  Date Validation Error  :calendar:')}
+      The provided date ${inlineCode('{{{date}}}')} is invalid or has already passed. Please provide a future date in the format ${inlineCode('YYYY-MM-DD')}.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':calendar:  DATUMSVALIDIERUNGSFEHLER  :calendar:')}
-      In einer Welt, in der die Zeit unerbittlich voranschreitet… können einige Daten nicht beachtet werden.
-
-      Das angegebene Datum ${inlineCode('{{{date}}}')} ist entweder ungültig oder liegt bereits in der Vergangenheit. Bitte gib ein zukünftiges Datum im Format ${inlineCode('JJJJ-MM-TT')} an.
-
-      ${quote(italic(`Der Bot kann nicht in die Vergangenheit reisen. Passe das Datum an und versuche es erneut, damit die Geschichte weitergeht.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':calendar:  Datumsvalidierungsfehler  :calendar:')}
+      Das angegebene Datum ${inlineCode('{{{date}}}')} ist ungültig oder liegt in der Vergangenheit. Bitte gib ein zukünftiges Datum im Format ${inlineCode('JJJJ-MM-TT')} an.
     `,
   },
   titleFeaturesValidationError: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':warning:  KEYWORD VALIDATION ERROR  :warning:')}
-      In a world where choices define destiny… nothing cannot be an option.
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':warning:  Keyword Validation Error  :warning:')}
+      You must provide at least one ${inlineCode('title')} or valid ${inlineCode('feature')}. Both cannot be empty.
 
-      You must provide at least one ${inlineCode('title')} or one ${inlineCode('feature')}. Both cannot be empty. The bot needs a spark to know what to watch for.
-
-      ${quote(italic(`The stage is empty without guidance. Fill in at least one title or feature to bring the show to life.`))}
+      ${quote(`Pro-tip: You can use the ${inlineCode(`/${movieFeaturesCommand.data.name}`)} command to check which features are valid.`)}
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':warning:  SCHLÜSSELWORTFEHLER  :warning:')}
-      In einer Welt, in der Entscheidungen das Schicksal bestimmen… kann nichts nicht gewählt werden.
+    [Locale.German]: chatMessage`
+      ${heading(':warning:  Schlüsselwortfehler  :warning:')}
+      Du musst mindestens einen ${inlineCode('Titel')} oder ein valides ${inlineCode('Schlüsselwort')} angeben. Beides darf nicht leer sein.
 
-      Du musst mindestens einen ${inlineCode('Titel')} oder ein ${inlineCode('Feature')} angeben. Beides darf nicht leer sein. Der Bot benötigt einen Funken, um zu wissen, worauf er achten soll.
-
-      ${quote(italic(`Die Bühne bleibt leer ohne Vorgaben. Gib mindestens einen Titel oder ein Feature ein, um die Show zum Leben zu erwecken.`))}
+      ${quote(`Pro-Tipp: Du kannst den ${inlineCode(`/${movieFeaturesCommand.data.name}`)} Befehl nutzen, um zu nachzusehen, welche Schlüsselwörter verfügbar sind.`)}
     `,
   },
   duplicateNotificationError: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':warning:  DUPLICATE NOTIFICATION  :warning:')}
-      In a world where every name must be unique… echoes are not allowed.
-
-      A notification with the name ${inlineCode('{{{notificationName}}}')} already exists. Please choose a different name to avoid confusion in the cosmos of alerts.
-
-      ${quote(italic(`The bot cannot conjure two identical signals. Rename your notification to continue the story.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':warning:  Duplicate Notification  :warning:')}
+      A notification with the name ${inlineCode('{{{notificationName}}}')} already exists. Please choose a different name.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':warning:  DOPPELTE BENACHRICHTIGUNG  :warning:')}
-      In einer Welt, in der jeder Name einzigartig sein muss… sind Echos nicht erlaubt.
-
-      Eine Benachrichtigung mit dem Namen ${inlineCode('{{{notificationName}}}')} existiert bereits. Bitte wähle einen anderen Namen, um Verwirrung im Kosmos der Benachrichtigungen zu vermeiden.
-
-      ${quote(italic(`Der Bot kann keine zwei identischen Signale erzeugen. Benenne deine Benachrichtigung um, um die Geschichte fortzusetzen.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':warning:  Doppelte Benachrichtigung  :warning:')}
+      Eine Benachrichtigung mit dem Namen ${inlineCode('{{{notificationName}}}')} existiert bereits. Bitte wähle einen anderen Namen.
     `,
   },
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  NOTIFICATION CREATION FAILED  :bangbang:')}
-      In a world where plans are made… sometimes magic slips through our fingers.
-
-      The bot was unable to create the notification. The forces of the universe interfered, and the request could not be completed.
-
-      ${quote(italic(`The story cannot advance without this notification. Please try again later.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Notification Creation Failed  :boom:')}
+      The bot was unable to create the notification. Please try again later.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FEHLGESCHLAGENE BENACHRICHTIGUNGSERSTELLUNG  :bangbang:')}
-      In einer Welt, in der Pläne geschmiedet werden… entgleitet manchmal die Magie unseren Fingern.
-
-      Der Bot konnte die Benachrichtigung nicht erstellen. Die Kräfte des Universums haben sich eingemischt, und die Anfrage konnte nicht abgeschlossen werden.
-
-      ${quote(italic(`Die Geschichte kann ohne diese Benachrichtigung nicht fortgesetzt werden. Bitte versuche es später erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Fehlgeschlagene Benachrichtigungserstellung  :boom:')}
+      Der Bot konnte die Benachrichtigung nicht erstellen. Bitte versuche es später erneut.
     `,
   },
 } as const;

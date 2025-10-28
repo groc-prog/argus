@@ -1,6 +1,6 @@
 import { Locale, heading, bold, inlineCode, quote, User } from 'discord.js';
-import { discordMessage } from '../utilities/discord';
-import Singleton from './singleton';
+import { chatMessage } from '../utilities/discord';
+import Singleton from '../utilities/singleton';
 import movieScreeningsCommand from '../bot/commands/movies/screenings';
 import { BotConfigurationModel } from '../models/bot-configuration';
 import { Cron, scheduledJobs } from 'croner';
@@ -25,11 +25,6 @@ interface JobContext {
 interface GuildJobContext extends JobContext {
   guildIds: Set<string>;
   updatedGuildIds?: Set<string>;
-}
-
-interface AggregatedGuilds {
-  _id: string;
-  guildIds: string[];
 }
 
 interface AggregatedUser {
@@ -67,9 +62,25 @@ interface MatchedMovie {
 
 export default class NotificationService extends Singleton {
   private messageTemplates = {
-    guild: {
-      [Locale.EnglishUS]: discordMessage`
-        ${heading(':clapper:  {{{title}}}  :clapper:')}
+    guildAnnouncementThread: {
+      [Locale.EnglishUS]: 'Movie updates from {{{date}}}',
+      [Locale.German]: 'Film-Updates von {{{date}}}',
+    },
+    guildMessageAnnouncement: {
+      [Locale.EnglishUS]: chatMessage`
+        ${heading(":loudspeaker:  ATTENTION PLEASE — Today's movie updates are in!  :loudspeaker:")}
+        Just checked the theatre and we've got the latest on what's playing today :popcorn:
+        Scroll through, pick your favorites, and maybe plan a movie night — I've got your back with all the showtimes.
+      `,
+      [Locale.German]: chatMessage`
+        ${heading(':loudspeaker:  ACHTUNG — Die heutigen Film-Updates sind da!  :loudspeaker:')}
+        Hab gerade im Kino nachgeschaut und wir haben die neuesten Infos, was heute läuft :popcorn:
+        Scroll dich durch, such dir deine Favoriten aus und plan vielleicht einen Kinoabend — ich hab die Showtimes für dich im Blick.
+      `,
+    },
+    guildMessageMovie: {
+      [Locale.EnglishUS]: chatMessage`
+        ${heading(':popcorn:  {{{title}}}  :popcorn:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -84,7 +95,7 @@ export default class NotificationService extends Singleton {
           ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
         {{/hasGenres}}
 
-        ${heading(':hourglass_flowing_sand:  Screenings')}
+        ${heading(':clapper:  Screenings')}
         {{#screenings}}
           ${bold('Start Time')}: ${inlineCode('{{{startTime}}}')}
           ${bold('Auditorium')}: ${inlineCode('{{{auditorium}}}')}
@@ -97,8 +108,8 @@ export default class NotificationService extends Singleton {
           ${quote(`You can use the ${inlineCode(`/${movieScreeningsCommand.data.name}`)} command to check when the movie is shown next.`)}
         {{/hasMoreScreenings}}
       `,
-      [Locale.German]: discordMessage`
-        ${heading(':clapper:  {{{title}}}  :clapper:')}
+      [Locale.German]: chatMessage`
+        ${heading(':popcorn:  {{{title}}}  :popcorn:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -113,7 +124,7 @@ export default class NotificationService extends Singleton {
           ${bold('Genres')}: ${inlineCode('{{{genres}}}')}
         {{/hasGenres}}
 
-        ${heading(':hourglass_flowing_sand:  Vorführungen')}
+        ${heading(':clapper:  Vorführungen')}
         {{#screenings}}
           ${bold('Startzeit')}: ${inlineCode('{{{startTime}}}')}
           ${bold('Saal')}: ${inlineCode('{{{auditorium}}}')}
@@ -127,9 +138,19 @@ export default class NotificationService extends Singleton {
         {{/hasMoreScreenings}}
       `,
     },
-    dm: {
-      [Locale.EnglishUS]: discordMessage`
-        ${heading(':popcorn:  Get the popcorn ready - {{{title}}} is coming  :popcorn:')}
+    dmMessageAnnouncement: {
+      [Locale.EnglishUS]: chatMessage`
+        ${heading(":loudspeaker:  ATTENTION PLEASE — I've got your movie alert(s)!  :loudspeaker:")}
+        Don't miss it — grab your popcorn and enjoy the show! :popcorn:
+      `,
+      [Locale.German]: chatMessage`
+        ${heading(':loudspeaker:  ACHTUNG — deine Film-Benachrichtigung(en) ist/sind da!  :loudspeaker:')}
+        Nicht verpassen — schnapp dir Popcorn und viel Spaß beim Film! :popcorn:
+      `,
+    },
+    dmMessageMovie: {
+      [Locale.EnglishUS]: chatMessage`
+        ${heading(':popcorn:  {{{title}}}  :popcorn:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -148,8 +169,8 @@ export default class NotificationService extends Singleton {
 
         ${quote(`This movie was matched by the notification(s) ${inlineCode('{{{matchedNotifications}}}')}.`)}
       `,
-      [Locale.German]: discordMessage`
-        ${heading(':popcorn:  Bereite das Popcorn vor - {{{title}}} kommt  :popcorn:')}
+      [Locale.German]: chatMessage`
+        ${heading(':popcorn:  {{{title}}}  :popcorn:')}
         {{#description}}
           {{{description}}}
         {{/description}}
@@ -176,36 +197,37 @@ export default class NotificationService extends Singleton {
    * `NOTIFICATION_SERVICE_DM_CRON` environment variable.
    * @async
    */
-  async start(): Promise<void> {
-    this.serviceLogger.debug('Scheduling jobs');
-
+  async run(): Promise<void> {
     try {
       this.serviceLogger.info(
         { model: BotConfigurationModel.constructor.name },
-        'Aggregating guild IDs grouped by cron schedule',
+        'Aggregating guild IDs grouped by cron schedule for initial job registration',
       );
-      const aggregated = await BotConfigurationModel.aggregate<AggregatedGuilds>()
+      const aggregatedNotificationSchedules = await BotConfigurationModel.aggregate<{
+        _id: string;
+        guildIds: string[];
+      }>()
         .match({
-          broadcastsDisabled: false,
+          guildNotificationsDisabled: false,
         })
         .group({
-          _id: '$broadcastCronSchedule',
+          _id: '$guildNotificationsCronSchedule',
           guildIds: {
             $addToSet: '$guildId',
           },
         });
 
-      const groups = aggregated.map((group) => ({
+      const jobGroups = aggregatedNotificationSchedules.map((group) => ({
         cron: group._id,
         guildIds: new Set(group.guildIds),
       }));
 
-      this.serviceLogger.debug('Scheduling guild jobs');
-      for (const group of groups) {
-        this.scheduleGuildMessage(group.cron, group.guildIds);
+      this.serviceLogger.debug(`Scheduling ${jobGroups.length} guild jobs`);
+      for (const group of jobGroups) {
+        this.scheduleGuildJob(group.cron, group.guildIds);
       }
 
-      this.serviceLogger.debug('Scheduling DM job');
+      this.serviceLogger.info('Scheduling DM job');
       new Cron(
         process.env.NOTIFICATION_SERVICE_DM_CRON,
         {
@@ -215,12 +237,11 @@ export default class NotificationService extends Singleton {
             this.serviceLogger.error(
               {
                 err,
-                job: executedJob.name,
                 nextScheduleAt: nextSchedulesInMs
                   ? dayjs().add(nextSchedulesInMs, 'ms')
                   : 'unknown',
               },
-              'Error during job execution',
+              'Error during DM job execution',
             );
           },
         },
@@ -229,7 +250,7 @@ export default class NotificationService extends Singleton {
         },
       );
 
-      this.serviceLogger.debug('Scheduling notification cleanup job');
+      this.serviceLogger.info('Scheduling notification cleanup job');
       new Cron(
         process.env.NOTIFICATION_SERVICE_NOTIFICATION_CLEANUP_CRON,
         {
@@ -239,12 +260,11 @@ export default class NotificationService extends Singleton {
             this.serviceLogger.error(
               {
                 err,
-                job: executedJob.name,
                 nextScheduleAt: nextSchedulesInMs
                   ? dayjs().add(nextSchedulesInMs, 'ms')
                   : 'unknown',
               },
-              'Error during job execution',
+              'Error during notification cleanup job execution',
             );
           },
         },
@@ -259,7 +279,7 @@ export default class NotificationService extends Singleton {
 
   /**
    * Removes the guild ID from the old CRON schedule (if defined) and moves it to the new CRON schedule. The
-   * change will only take effect in the new job run.
+   * change will only take effect in the next job run.
    * @param {string} guildId - The guild ID to update the CRON schedule for.
    * @param {string} newCronSchedule - The new CRON schedule the guild should follow.
    * @param {string} [oldCronSchedule] - The old CRON schedule of the guild, if it had one.
@@ -310,11 +330,11 @@ export default class NotificationService extends Singleton {
         (newJob.options.context as GuildJobContext).updatedGuildIds = currentGuildIds;
       }
     } else {
-      this.scheduleGuildMessage(newCronSchedule, new Set([guildId]));
+      this.scheduleGuildJob(newCronSchedule, new Set([guildId]));
     }
   }
 
-  private scheduleGuildMessage(cron: string, guildIds: Set<string>): void {
+  private scheduleGuildJob(cron: string, guildIds: Set<string>): void {
     const loggerWithCtx = this.serviceLogger.child({ pattern: cron, jobType: JobType.Guild });
 
     const existingJob = scheduledJobs.find(
@@ -327,7 +347,7 @@ export default class NotificationService extends Singleton {
       return;
     }
 
-    loggerWithCtx.info('Registering new job');
+    loggerWithCtx.info('Registering new guild job');
     new Cron(
       cron,
       {
@@ -341,7 +361,7 @@ export default class NotificationService extends Singleton {
               job: `send-guild-message (${executedJob.getPattern()})`,
               nextScheduleAt: nextSchedulesInMs ? dayjs().add(nextSchedulesInMs, 'ms') : 'unknown',
             },
-            'Error during job execution',
+            'Error during guild job execution',
           );
         },
       },
@@ -355,7 +375,7 @@ export default class NotificationService extends Singleton {
         }
 
         if (jobCtx.guildIds.size === 0) {
-          loggerWithCtx.info('Job has no more guilds to guild to, stopping job');
+          loggerWithCtx.info('Job has no more guilds to notify, stopping job');
           job.stop();
           return;
         }
@@ -363,62 +383,89 @@ export default class NotificationService extends Singleton {
         await this.executeGuildJob(jobCtx.guildIds);
       },
     );
-    loggerWithCtx.info('New job scheduled');
+    loggerWithCtx.info('New guild job scheduled');
   }
 
   private async executeNotificationCleanupJob(): Promise<void> {
     try {
-      this.serviceLogger.info('Removing all expired notifications without keep-alive flag');
-      const removedResult = await UserModel.updateMany(
-        {},
-        {
-          $pull: {
-            notifications: {
-              $and: [
-                { keepAfterExpiration: false },
-                {
-                  $or: [
-                    { expiresAt: { $lt: dayjs().utc().toDate() } },
-                    { $expr: { $eq: ['sentDms', 'maxDms'] } },
-                  ],
-                },
-              ],
-            },
-          },
-        },
-      );
-      this.serviceLogger.info(`Removed notifications for ${removedResult.modifiedCount} users`);
+      const now = dayjs.utc().toDate();
 
-      this.serviceLogger.info('Deactivating all expired notifications with keep-alive flag');
-      const deactivatedResult = await UserModel.updateMany(
-        {},
+      this.serviceLogger.info(
+        'Removing all expired notifications without `keepAfterExpiration` flag',
+      );
+      const removedResult = await UserModel.updateMany({}, [
         {
           $set: {
-            'notifications.$[elem].deactivatedAt': dayjs().utc().toDate(),
+            notifications: {
+              $filter: {
+                input: '$notifications',
+                as: 'n',
+                cond: {
+                  $not: {
+                    $and: [
+                      {
+                        $or: [
+                          { $eq: ['$$n.keepAfterExpiration', false] },
+                          { $eq: ['$$n.keepAfterExpiration', null] },
+                        ],
+                      },
+                      {
+                        $or: [
+                          { $lte: ['$$n.expiresAt', now] },
+                          { $gte: ['$$n.sentDms', '$$n.maxDms'] },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
           },
         },
+      ]);
+      this.serviceLogger.info(`Removed notifications for ${removedResult.modifiedCount} users`);
+
+      this.serviceLogger.info(
+        'Deactivating all expired notifications with `keepAfterExpiration` flag',
+      );
+      const deactivatedResult = await UserModel.updateMany({}, [
         {
-          arrayFilters: [
-            {
-              $and: [
-                { 'elem.keepAfterExpiration': true },
-                {
-                  $or: [
-                    { 'elem.expiresAt': { $lt: dayjs().utc().toDate() } },
-                    { $expr: { $eq: ['$elem.sentDms', '$elem.maxDms'] } },
+          $set: {
+            notifications: {
+              $map: {
+                input: '$notifications',
+                as: 'notification',
+                in: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $eq: ['$$notification.keepAfterExpiration', true] },
+                        {
+                          $or: [
+                            { $lt: ['$$notification.expiresAt', now] },
+                            { $gte: ['$$notification.sentDms', '$$notification.maxDms'] },
+                          ],
+                        },
+                        { $not: [{ $ifNull: ['$$notification.deactivatedAt', false] }] },
+                      ],
+                    },
+                    {
+                      $mergeObjects: ['$$notification', { deactivatedAt: now }],
+                    },
+                    '$$notification',
                   ],
                 },
-              ],
+              },
             },
-          ],
+          },
         },
-      );
+      ]);
 
       this.serviceLogger.info(
         `Deactivated notifications for ${deactivatedResult.modifiedCount} users`,
       );
     } catch (err) {
-      this.serviceLogger.error({ err }, 'Failed to execute job');
+      this.serviceLogger.error({ err }, 'Failed to execute notification cleanup job');
     }
   }
 
@@ -449,7 +496,7 @@ export default class NotificationService extends Singleton {
         return;
       }
 
-      loggerWithJobCtx.info('Executing scheduled job for guilds');
+      loggerWithJobCtx.info(`Notifying ${guildIds.size} guilds about movie updates`);
       for (const guildId of guildIds) {
         await this.sendGuildMessage(guildId, movies);
       }
@@ -462,6 +509,7 @@ export default class NotificationService extends Singleton {
     const loggerWithGuildCtx = this.serviceLogger.child({ guildId });
 
     try {
+      loggerWithGuildCtx.info('Getting bot configuration for guild');
       const configuration = await BotConfigurationModel.findOne({ guildId });
       if (!configuration) {
         loggerWithGuildCtx.warn('Bot configuration for guild not found');
@@ -469,7 +517,7 @@ export default class NotificationService extends Singleton {
       }
 
       const guild = await configuration.resolveGuild();
-      const channel = await configuration.resolveBroadcastChannel();
+      const channel = await configuration.resolveGuildNotificationChannel();
       if (!channel) {
         loggerWithGuildCtx.warn('Guild channel could not be resolved');
         return;
@@ -477,16 +525,37 @@ export default class NotificationService extends Singleton {
 
       loggerWithGuildCtx.info('Sending messages to guild channel');
       const usedLocale =
-        guild.preferredLocale in this.messageTemplates.guild
+        guild.preferredLocale in this.messageTemplates.guildMessageMovie
           ? guild.preferredLocale
           : Locale.EnglishUS;
 
+      loggerWithGuildCtx.debug('Sending announcement message');
+      const announcementMessage = await channel.send({
+        content:
+          this.messageTemplates.guildMessageAnnouncement[
+            usedLocale as keyof typeof this.messageTemplates.guildMessageAnnouncement
+          ],
+      });
+
+      loggerWithGuildCtx.info('Creating new thread for movie updates and sending updates');
+      const announcementThread = await announcementMessage.startThread({
+        name: Mustache.render(
+          this.messageTemplates.guildAnnouncementThread[
+            usedLocale as keyof typeof this.messageTemplates.guildAnnouncementThread
+          ],
+          {
+            date: dayjs.utc().format('YYYY-MM-DD HH:mm:ss'),
+          },
+        ),
+      });
       for (const movie of movies) {
-        await channel.send({
+        loggerWithGuildCtx.debug('Replying to announcement message with movie update');
+        await announcementThread.send({
           content: this.compileGuildMessage(movie, usedLocale, configuration.timezone),
         });
       }
-      loggerWithGuildCtx.info(`${movies.length} messages send`);
+      loggerWithGuildCtx.info(`${movies.length + 1} messages send`);
+      await announcementThread.edit({ locked: true, archived: true });
     } catch (err) {
       loggerWithGuildCtx.error({ err }, 'Failed to send message to guild channel');
     }
@@ -521,7 +590,9 @@ export default class NotificationService extends Singleton {
     };
 
     return Mustache.render(
-      this.messageTemplates.guild[locale as keyof typeof this.messageTemplates.guild],
+      this.messageTemplates.guildMessageMovie[
+        locale as keyof typeof this.messageTemplates.guildMessageMovie
+      ],
       ctx,
     );
   }
@@ -592,7 +663,7 @@ export default class NotificationService extends Singleton {
                             $dateSubtract: {
                               startDate: now,
                               unit: 'day',
-                              amount: { $ifNull: ['$$notification.dmDayInterval', 1] },
+                              amount: { $ifNull: ['$$notification.cooldown', 1] },
                             },
                           },
                         ],
@@ -720,6 +791,7 @@ export default class NotificationService extends Singleton {
       const matches: Record<string, MatchedMovie> = {};
       const fuse = new Fuse(movies, {
         keys: ['title'],
+        threshold: 0.3,
       });
 
       loggerWithUserCtx.info('Searching movies for keyword matches');
@@ -765,7 +837,7 @@ export default class NotificationService extends Singleton {
             for (const movie of movies) {
               if (!movie.features.includes(keyword.value)) continue;
 
-              loggerWithKeywordCtx.info(`Found match for movie ${movie.title}`);
+              loggerWithKeywordCtx.info(`Found feature match for movie ${movie.title}`);
               const existingMatch = matches[movie._id.toString()];
               if (existingMatch) {
                 loggerWithKeywordCtx.debug(
@@ -797,6 +869,14 @@ export default class NotificationService extends Singleton {
       }
 
       loggerWithUserCtx.info(`Found ${matchedMovies.length} matches in total, sending messages`);
+      loggerWithUserCtx.debug('Sending announcement message');
+      const announcementMessage = await resolvedUser.send({
+        content:
+          this.messageTemplates.dmMessageAnnouncement[
+            user.locale as keyof typeof this.messageTemplates.dmMessageAnnouncement
+          ],
+      });
+
       for (const matchedMovie of matchedMovies) {
         // If feature keywords have been defined, filter screenings for only the ones matching those keywords
         const featureKeywords = keywords.filter(
@@ -809,7 +889,8 @@ export default class NotificationService extends Singleton {
           );
         }
 
-        await resolvedUser.send({
+        loggerWithUserCtx.debug('Replying to announcement message with movie update');
+        await announcementMessage.reply({
           content: this.compileDmMessage(matchedMovie, user.locale, user.timezone),
         });
       }
@@ -842,7 +923,9 @@ export default class NotificationService extends Singleton {
     };
 
     return Mustache.render(
-      this.messageTemplates.dm[locale as keyof typeof this.messageTemplates.dm],
+      this.messageTemplates.dmMessageMovie[
+        locale as keyof typeof this.messageTemplates.dmMessageMovie
+      ],
       ctx,
     );
   }

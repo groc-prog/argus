@@ -8,10 +8,9 @@ import {
   italic,
   Locale,
   MessageFlags,
-  quote,
   SlashCommandBuilder,
 } from 'discord.js';
-import { discordMessage, sendInteractionReply } from '../../../utilities/discord';
+import { chatMessage, sendInteractionReply } from '../../../utilities/discord';
 import { getLoggerWithCtx } from '../../../utilities/logger';
 import { MovieModel } from '../../../models/movie';
 import { isValidObjectId } from 'mongoose';
@@ -133,7 +132,7 @@ export default {
 
 const replies = {
   success: {
-    [Locale.EnglishUS]: discordMessage`
+    [Locale.EnglishUS]: chatMessage`
       ${heading(':clapper:  {{{title}}}  :clapper:', HeadingLevel.Two)}
       {{#hasScreenings}}
         {{#screenings}}
@@ -142,14 +141,13 @@ const replies = {
           {{#hasFeatures}}
             ${bold('Features')}: {{{features}}}
           {{/hasFeatures}}
-
         {{/screenings}}
       {{/hasScreenings}}
       {{^hasScreenings}}
         ${italic('No active screenings found for this movie.')}
       {{/hasScreenings}}
     `,
-    [Locale.German]: discordMessage`
+    [Locale.German]: chatMessage`
       ${heading(':clapper:  {{{title}}}  :clapper:', HeadingLevel.Two)}
       {{#hasScreenings}}
         {{#screenings}}
@@ -158,7 +156,6 @@ const replies = {
           {{#hasFeatures}}
             ${bold('Features')}: {{{features}}}
           {{/hasFeatures}}
-
         {{/screenings}}
       {{/hasScreenings}}
       {{^hasScreenings}}
@@ -166,40 +163,26 @@ const replies = {
       {{/hasScreenings}}
     `,
   },
+
   movieNotFound: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  MOVIE NOT FOUND  :bangbang:')}
-      In a world filled with stories… this one remains untold.
-
-      The requested movie could not be found. It may not exist, or it might have slipped into the shadows of the archive.
-
-      ${quote(italic(`The reel spins endlessly, yet this story eludes the frame. Check your title and try again.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':mag:  Movie Not Found  :mag:')}
+      The requested movie could not be found. It may not exist or might have been archived.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FILM NICHT GEFUNDEN  :bangbang:')}
-      In einer Welt voller Geschichten… bleibt diese unerzählt.
-
-      Der angeforderte Film konnte nicht gefunden werden. Er existiert möglicherweise nicht oder ist in den Schatten des Archivs verschwunden.
-
-      ${quote(italic(`Die Filmrolle dreht sich endlos, doch diese Geschichte entzieht sich dem Bild. Überprüfe den Titel und versuche es erneut.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':mag:  Film nicht gefunden  :mag:')}
+      Der angeforderte Film konnte nicht gefunden werden. Er existiert möglicherweise nicht oder ist archiviert.
     `,
   },
+
   error: {
-    [Locale.EnglishUS]: discordMessage`
-      ${heading(':bangbang:  MOVIE RETRIEVAL FAILED  :bangbang:')}
-      In a world where stories should flow freely… something disrupted the reel.
-
-      The bot was unable to retrieve the requested movie information. A disturbance in the network or an issue with the data source prevented completion of your request.
-
-      ${quote(italic(`The scene fades before it begins. Please try again later — the story will resume once balance is restored.`))}
+    [Locale.EnglishUS]: chatMessage`
+      ${heading(':boom:  Movie Retrieval Failed  :boom:')}
+      The bot was unable to retrieve the requested movie information due to a network or data issue.
     `,
-    [Locale.German]: discordMessage`
-      ${heading(':bangbang:  FILMABRUF FEHLGESCHLAGEN  :bangbang:')}
-      In einer Welt, in der Geschichten frei fließen sollten… wurde der Filmstreifen unterbrochen.
-
-      Der Bot konnte die angeforderten Filminformationen nicht abrufen. Eine Störung im Netzwerk oder ein Problem mit der Datenquelle hat die Anfrage verhindert.
-
-      ${quote(italic(`Die Szene verblasst, bevor sie beginnt. Bitte versuche es später erneut — die Geschichte wird fortgesetzt, sobald das Gleichgewicht wiederhergestellt ist.`))}
+    [Locale.German]: chatMessage`
+      ${heading(':boom:  Filmabruf fehlgeschlagen  :boom:')}
+      Der Bot konnte die angeforderten Filminformationen aufgrund einer Netzwerk- oder Datenstörung nicht abrufen.
     `,
   },
 } as const;
