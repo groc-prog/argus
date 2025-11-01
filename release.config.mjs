@@ -7,7 +7,12 @@ export default {
     '@semantic-release/commit-analyzer',
     '@semantic-release/release-notes-generator',
     ['@semantic-release/changelog', { changelogFile: 'CHANGELOG.md' }],
-    ['@semantic-release/npm', { npmPublish: false }],
+    [
+      '@semantic-release/github',
+      {
+        assets: [{ path: 'dist', label: 'argus' }],
+      },
+    ],
     [
       '@semantic-release/git',
       {
