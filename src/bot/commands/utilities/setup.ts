@@ -277,7 +277,7 @@ const replies = {
       ${bold('Channel')}:  ${inlineCode('{{#guildNotificationChannel}}{{{guildNotificationChannel}}}{{/guildNotificationChannel}}{{^guildNotificationChannel}}NOT CONFIGURED{{/guildNotificationChannel}}')}
       ${bold('Schedule')}:  ${inlineCode('{{{guildNotificationSchedule}}}')}
       ${bold('Guild Notifications Enabled')}:  ${inlineCode('{{#guildNotificationsEnabled}}YES{{/guildNotificationsEnabled}}{{^guildNotificationsEnabled}}NO{{/guildNotificationsEnabled}}')}
-      ${bold('Timezone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}Europe/Vienna{{/timezone}}
+      ${bold('Timezone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}${inlineCode('Europe/Vienna')}{{/timezone}}
 
       {{#setupFinished}}
         ${quote(italic(":tada: Everything's good to go! The bot's ready, the lights are on, and the show is rolling."))}
@@ -294,7 +294,7 @@ const replies = {
       ${bold('Kanal')}:  ${inlineCode('{{#guildNotificationChannel}}{{{guildNotificationChannel}}}{{/guildNotificationChannel}}{{^guildNotificationChannel}}NICHT KONFIGURIERT{{/guildNotificationChannel}}')}
       ${bold('Zeitplan')}:  ${inlineCode('{{{guildNotificationSchedule}}}')}
       ${bold('Server-Benachrichtigungen Aktiviert')}:  ${inlineCode('{{#guildNotificationsEnabled}}JA{{/guildNotificationsEnabled}}{{^guildNotificationsEnabled}}NEIN{{/guildNotificationsEnabled}}')}
-      ${bold('Zeitzone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}Europe/Vienna{{/timezone}}
+      ${bold('Zeitzone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}${inlineCode('Europe/Vienna')}{{/timezone}}
 
       {{#setupFinished}}
         ${quote(italic(':tada: Alles läuft rund! Der Bot ist bereit, die Lichter sind an — Film ab!'))}
