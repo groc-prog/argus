@@ -9,6 +9,7 @@ const DYNAMIC_IMPORT_DIST_DIR = path.join(import.meta.dirname, '..', DIST_DIR);
 const BUILD_ARGS: Partial<BuildConfig> = {
   target: 'bun',
   minify: true,
+  sourcemap: true,
 };
 
 async function buildDiscordEventFiles(): Promise<void> {
