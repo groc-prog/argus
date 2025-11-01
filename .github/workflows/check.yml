@@ -11,7 +11,7 @@ on:
       - develop
 
 jobs:
-  setup:
+  install-dependencies:
     name: Setup Dependencies
     runs-on: ubuntu-latest
     outputs:
@@ -36,7 +36,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: setup
+    needs: install-dependencies
     steps:
       - uses: actions/checkout@v4
       - name: Setup Bun
@@ -55,7 +55,7 @@ jobs:
   type-check:
     name: Type-Check
     runs-on: ubuntu-latest
-    needs: setup
+    needs: install-dependencies
     steps:
       - uses: actions/checkout@v4
       - name: Setup Bun
@@ -74,7 +74,7 @@ jobs:
   format:
     name: Format
     runs-on: ubuntu-latest
-    needs: setup
+    needs: install-dependencies
     steps:
       - uses: actions/checkout@v4
       - name: Setup Bun
