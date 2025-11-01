@@ -77,6 +77,8 @@ jobs:
         with:
           name: argus
           path: dist
+      - name: Zip dist directory
+        run: zip -r argus.zip dist
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
