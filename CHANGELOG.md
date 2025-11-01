@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/groc-prog/argus/compare/v1.0.1...v1.0.2) (2025-11-01)
+
+
+### Bug Fixes
+
+* unify markdown style for responses, remove build info from log ([874861d](https://github.com/groc-prog/argus/commit/874861d6afb16016fd12a70c55c025598389d345))
+
 ## [1.0.1](https://github.com/groc-prog/argus/compare/v1.0.0...v1.0.1) (2025-11-01)
 
 
