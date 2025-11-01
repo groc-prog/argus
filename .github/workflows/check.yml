@@ -18,7 +18,8 @@ jobs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
       - name: Cache Bun dependencies
         id: cache
         uses: actions/cache@v3
@@ -38,7 +39,8 @@ jobs:
     needs: setup
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
       - name: Restore Bun cache
         uses: actions/cache@v3
         with:
@@ -47,7 +49,8 @@ jobs:
             bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
-      - run: bun run lint:check
+      - name: Run ESLint
+        run: bun run lint:check
 
   type-check:
     name: Type-Check
@@ -55,7 +58,8 @@ jobs:
     needs: setup
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
       - name: Restore Bun cache
         uses: actions/cache@v3
         with:
@@ -64,7 +68,8 @@ jobs:
             bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
-      - run: bun run type-check
+      - name: Run TSC
+        run: bun run type-check
 
   format:
     name: Format
@@ -72,7 +77,8 @@ jobs:
     needs: setup
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
       - name: Restore Bun cache
         uses: actions/cache@v3
         with:
@@ -81,4 +87,5 @@ jobs:
             bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
-      - run: bun run fmt:check
+      - name: Run Prettier
+        run: bun run fmt:check
