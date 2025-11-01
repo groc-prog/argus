@@ -2,7 +2,6 @@ import {
   ChatInputCommandInteraction,
   heading,
   inlineCode,
-  italic,
   Locale,
   MessageFlags,
   quote,
@@ -47,7 +46,7 @@ const replies = {
         ${unorderedList([inlineCode('{{{.}}}')])}
       {{/features}}
 
-      ${quote(italic(`Each of these is like a little hint for making your notifications just right`))}
+      ${quote(`Each of these is like a little hint for making your notifications just right`)}
     `,
     [Locale.German]: chatMessage`
       ${heading(':popcorn:  Schlüsselwörter  :popcorn:')}
@@ -57,7 +56,7 @@ const replies = {
         ${unorderedList([inlineCode('{{{.}}}')])}
       {{/features}}
 
-      ${quote(italic(`Jedes davon ist wie ein kleiner Tipp, damit deine Benachrichtigungen richtig nice werden`))}
+      ${quote(`Jedes davon ist wie ein kleiner Tipp, damit deine Benachrichtigungen richtig nice werden`)}
     `,
   },
 } as const;

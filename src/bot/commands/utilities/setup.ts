@@ -7,7 +7,6 @@ import {
   hyperlink,
   inlineCode,
   InteractionContextType,
-  italic,
   Locale,
   MessageFlags,
   quote,
@@ -280,10 +279,10 @@ const replies = {
       ${bold('Timezone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}${inlineCode('Europe/Vienna')}{{/timezone}}
 
       {{#setupFinished}}
-        ${quote(italic(":tada: Everything's good to go! The bot's ready, the lights are on, and the show is rolling."))}
+        ${quote(":tada: Everything's good to go! The bot's ready, the lights are on, and the show is rolling.")}
       {{/setupFinished}}
       {{^setupFinished}}
-        ${quote(italic(`:hourglass_flowing_sand: Almost there! Run ${inlineCode('/{{{setupCommand}}}')} to finish setting things up and get the updates rolling. :popcorn:`))}
+        ${quote(`:hourglass_flowing_sand: Almost there! Run ${inlineCode('/{{{setupCommand}}}')} to finish setting things up and get the updates rolling. :popcorn:`)}
       {{/setupFinished}}
     `,
     [Locale.German]: chatMessage`
@@ -297,10 +296,10 @@ const replies = {
       ${bold('Zeitzone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}${inlineCode('Europe/Vienna')}{{/timezone}}
 
       {{#setupFinished}}
-        ${quote(italic(':tada: Alles läuft rund! Der Bot ist bereit, die Lichter sind an — Film ab!'))}
+        ${quote(':tada: Alles läuft rund! Der Bot ist bereit, die Lichter sind an — Film ab!')}
       {{/setupFinished}}
       {{^setupFinished}}
-        ${quote(italic(`:hourglass_flowing_sand: Fast fertig! Verwende ${inlineCode('/{{{setupCommand}}}')}, um die Einrichtung abzuschließen. Dann geht's los! :popcorn:`))}
+        ${quote(`:hourglass_flowing_sand: Fast fertig! Verwende ${inlineCode('/{{{setupCommand}}}')}, um die Einrichtung abzuschließen. Dann geht's los! :popcorn:`)}
       {{/setupFinished}}
     `,
   },
@@ -339,7 +338,7 @@ const replies = {
 
       The bot tried its best, but something went off-script.
 
-      ${quote(italic(":rotating_light: Let's give it a moment — try again soon and we'll get the show rolling again!"))}
+      ${quote(":rotating_light: Let's give it a moment — try again soon and we'll get the show rolling again!")}
     `,
     [Locale.German]: chatMessage`
       ${heading(':boom:  Och Ne! Irgendwas Ist Am Arsch  :boom:')}
@@ -347,7 +346,7 @@ const replies = {
 
       Der Bot hat sein Bestes gegeben, aber irgendwas lief nicht nach Plan.
 
-      ${quote(italic(':rotating_light: Gib ihm kurz Zeit — bald läuft die Show wieder!'))}
+      ${quote(':rotating_light: Gib ihm kurz Zeit — bald läuft die Show wieder!')}
     `,
   },
 } as const;

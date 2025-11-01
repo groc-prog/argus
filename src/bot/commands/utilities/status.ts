@@ -4,7 +4,6 @@ import {
   heading,
   inlineCode,
   InteractionContextType,
-  italic,
   Locale,
   quote,
   SlashCommandBuilder,
@@ -87,10 +86,10 @@ const replies = {
       {{/lastModifiedBy}}
 
       {{#setupFinished}}
-        ${quote(italic(":tada: Everything's running smooth! We're good to roll — no lag on the red carpet."))}
+        ${quote(":tada: Everything's running smooth! We're good to roll — no lag on the red carpet.")}
       {{/setupFinished}}
       {{^setupFinished}}
-        ${quote(italic(`:hourglass_flowing_sand: Almost ready! Use ${inlineCode('/{{{setupCommand}}}')} to finish setup so we can start showing off those movies! :popcorn:`))}
+        ${quote(`:hourglass_flowing_sand: Almost ready! Use ${inlineCode('/{{{setupCommand}}}')} to finish setup so we can start showing off those movies! :popcorn:`)}
       {{/setupFinished}}
     `,
     [Locale.German]: chatMessage`
@@ -127,7 +126,7 @@ const replies = {
       ${bold('Schedule')}:  ${inlineCode('(no response)')}
       ${bold('Timezone')}:  ${inlineCode('(no response)')}
 
-      ${quote(italic(':rotating_light: The bot hit a snag! Give it a bit and try again — the show must go on soon.'))}
+      ${quote(':rotating_light: The bot hit a snag! Give it a bit and try again — the show must go on soon.')}
     `,
     [Locale.German]: chatMessage`
       ${heading(':clapper:  Statuscheck  :clapper:')}
@@ -139,7 +138,7 @@ const replies = {
       ${bold('Zeitplan')}:  ${inlineCode('(keine Antwort)')}
       ${bold('Zeitzone')}:  ${inlineCode('(keine Antwort)')}
 
-      ${quote(italic(":rotating_light: Der Bot hatte ein kleines Problem! Warte kurz und versuch's dann nochmal — die Show geht bald weiter."))}
+      ${quote(":rotating_light: Der Bot hatte ein kleines Problem! Warte kurz und versuch's dann nochmal — die Show geht bald weiter.")}
     `,
   },
 } as const;
