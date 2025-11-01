@@ -80,7 +80,7 @@ const replies = {
       ${bold('Channel')}:  ${inlineCode('{{#guildNotificationChannel}}{{{guildNotificationChannel}}}{{/guildNotificationChannel}}{{^guildNotificationChannel}}NOT CONFIGURED{{/guildNotificationChannel}}')}
       ${bold('Schedule')}:  ${inlineCode('{{#guildNotificationSchedule}}{{{guildNotificationSchedule}}}{{/guildNotificationSchedule}}{{^guildNotificationSchedule}}NOT CONFIGURED{{/guildNotificationSchedule}}')}
       ${bold('Guild Notifications Enabled')}:  ${inlineCode('{{#guildNotificationsEnabled}}YES{{/guildNotificationsEnabled}}{{^guildNotificationsEnabled}}NO{{/guildNotificationsEnabled}}')}
-      ${bold('Timezone')}:  ${inlineCode('{{{timezone}}}')}
+      ${bold('Timezone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}Europe/Vienna{{/timezone}}
 
       {{#lastModifiedBy}}
         ${subtext(`(Last tweaked by ${inlineCode('{{{lastModifiedBy}}}')})`)}
@@ -102,7 +102,7 @@ const replies = {
       ${bold('Kanal')}:  ${inlineCode('{{#guildNotificationChannel}}{{{guildNotificationChannel}}}{{/guildNotificationChannel}}{{^guildNotificationChannel}}NICHT KONFIGURIERT{{/guildNotificationChannel}}')}
       ${bold('Zeitplan')}:  ${inlineCode('{{#guildNotificationSchedule}}{{{guildNotificationSchedule}}}{{/guildNotificationSchedule}}{{^guildNotificationSchedule}}NICHT KONFIGURIERT{{/guildNotificationSchedule}}')}
       ${bold('Server-Benachrichtigungen Aktiviert')}:  ${inlineCode('{{#guildNotificationsEnabled}}JA{{/guildNotificationsEnabled}}{{^guildNotificationsEnabled}}NEIN{{/guildNotificationsEnabled}}')}
-      ${bold('Zeitzone')}:  ${inlineCode('{{{timezone}}}')}
+      ${bold('Zeitzone')}:  {{#timezone}}${inlineCode('{{{timezone}}}')}{{/timezone}}{{^timezone}}Europe/Vienna{{/timezone}}
 
       {{#lastModifiedBy}}
         ${subtext(`(Zuletzt geändert von ${inlineCode('{{{lastModifiedBy}}}')})`)}
