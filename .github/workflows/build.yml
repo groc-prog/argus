@@ -15,8 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun ci
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            .bun
+            bun.lock
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lock') }}
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun ci
       - run: bun run build
       - uses: actions/upload-artifact@v4
         with:
@@ -40,7 +52,7 @@ jobs:
           node-version: 20
           cache: "npm"
       - name: Install dependencies
-        run: npm install --frozen-lockfile
+        run: npm install
       - name: Run Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
