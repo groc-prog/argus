@@ -10,7 +10,7 @@ export default {
     [
       '@semantic-release/github',
       {
-        assets: [{ path: 'dist', label: 'argus' }],
+        assets: [{ path: 'argus.zip', label: 'argus distribution' }],
       },
     ],
     [
