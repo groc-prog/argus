@@ -1,75 +1,26 @@
-import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
-import { readdir } from 'node:fs/promises';
+import { Client, GatewayIntentBits, REST, Routes, type ClientEvents } from 'discord.js';
 import logger from '../utilities/logger';
-import path from 'node:path';
-import type { Command, Event } from '../types/discord.js';
+import commands from './commands';
+import events from './events';
 
 export const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Map();
 
-async function registerCommandsFromDirectory(): Promise<void> {
-  const commandFoldersPath = path.join(import.meta.dirname, 'commands');
-  logger.debug(`Collecting commands from ${commandFoldersPath}`);
-
-  const commandFolders = await readdir(commandFoldersPath, { withFileTypes: true });
-  for (const folder of commandFolders) {
-    if (!folder.isDirectory()) continue;
-
-    const commandFiles = await readdir(path.join(commandFoldersPath, folder.name), {
-      withFileTypes: true,
-    });
-    for (const file of commandFiles) {
-      if (!file.isFile()) continue;
-
-      const fileParts = file.name.split('.');
-      const extension = fileParts.length > 1 ? fileParts.pop() : '';
-      if (extension !== 'ts' && extension !== 'js') continue;
-
-      const commandFilePath = path.join(commandFoldersPath, folder.name, file.name);
-      logger.debug(`Discovered command at ${commandFilePath}, importing module`);
-
-      const { default: command } = (await import(commandFilePath)) as { default: Command };
-      if (typeof command === 'object' && 'data' in command && 'execute' in command) {
-        logger.info(`Discovered command ${command.data.name}`);
-        client.commands.set(command.data.name, command);
-        continue;
-      }
-
-      logger.warn(
-        `Found command at ${commandFilePath} which does not export required properties, skipping`,
-      );
-    }
+function registerCommandsFromDirectory(): void {
+  logger.debug('Collecting commands');
+  for (const command of commands) {
+    client.commands.set(command.data.name, command);
   }
 }
 
-async function registerEventsFromDirectory(): Promise<void> {
-  const eventFoldersPath = path.join(import.meta.dirname, 'events');
-  logger.debug(`Collecting events from ${eventFoldersPath}`);
+function registerEventsFromDirectory(): void {
+  logger.debug('Collecting commands');
+  for (const event of events) {
+    const eventName = event.name as keyof ClientEvents;
+    const executeFn = event.execute as (...args: unknown[]) => unknown;
 
-  const eventFolders = await readdir(eventFoldersPath, { withFileTypes: true });
-  for (const file of eventFolders) {
-    if (!file.isFile()) continue;
-
-    const fileParts = file.name.split('.');
-    const extension = fileParts.length > 1 ? fileParts.pop() : '';
-    if (extension !== 'ts' && extension !== 'js') continue;
-
-    const eventFilePath = path.join(eventFoldersPath, file.name);
-    logger.debug(`Discovered event at ${eventFilePath}, importing module`);
-
-    const { default: event } = (await import(eventFilePath)) as { default: Event };
-    if (typeof event === 'object' && 'name' in event && 'execute' in event) {
-      logger.info(`Discovered event ${event.name}`);
-
-      if (event.once) client.once(event.name, (...args) => event.execute(...args));
-      else client.on(event.name, (...args) => event.execute(...args));
-
-      continue;
-    }
-
-    logger.warn(
-      `Found event at ${eventFilePath} which does not export required properties, skipping`,
-    );
+    if ('once' in event && event.once) client.once(eventName, (...args) => executeFn(...args));
+    else client.on(eventName, (...args) => executeFn(...args));
   }
 }
 
@@ -81,8 +32,8 @@ async function registerEventsFromDirectory(): Promise<void> {
  */
 export async function initializeDiscordClient(): Promise<void> {
   try {
-    await registerCommandsFromDirectory();
-    await registerEventsFromDirectory();
+    registerCommandsFromDirectory();
+    registerEventsFromDirectory();
 
     const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
     const commands = client.commands.values().toArray();
