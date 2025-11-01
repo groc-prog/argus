@@ -61,6 +61,9 @@ jobs:
       - install-dependencies
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Restore Bun cache
         uses: actions/cache@v3
         with:
@@ -69,6 +72,11 @@ jobs:
             bun.lock
             node_modules
           key: bun-deps-${{ hashFiles('bun.lock') }}
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: argus
+          path: dist
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
