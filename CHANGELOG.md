@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/groc-prog/argus/compare/v1.0.0...v1.0.1) (2025-11-01)
+
+
+### Bug Fixes
+
+* handle missing timezone info correctly in response ([23cc127](https://github.com/groc-prog/argus/commit/23cc12705f28edace7e5954a0da1d1350536869d))
+
 # 1.0.0 (2025-11-01)
 
 
